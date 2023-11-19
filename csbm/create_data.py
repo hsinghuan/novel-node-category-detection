@@ -13,8 +13,8 @@ def create(args):
 
     os.makedirs(args.root_dir, exist_ok=True)
 
-    num_src_base = 300
-    num_tgt_base = 300
+    num_src_base = 400
+    num_tgt_base = 400
     src_base_dist = np.array([0.5, 0.5]) # can control subpopulation shift here
     tgt_base_dist = np.array([0.5, 0.5])
     alpha = 0.05 # can control novel ratio here
@@ -32,13 +32,16 @@ def create(args):
                         [np.cos(2 * np.pi / 3), np.sin(2 * np.pi / 3)],
                         [np.cos(4 * np.pi / 3), np.sin(4 * np.pi / 3)]])
     cluster_std = 1 / np.sqrt(2)
-    src_ratio = np.divide(src_base_dist, src_base_dist + tgt_base_dist)
+    src_ratio_per_cls = np.divide(src_base_dist, src_base_dist + tgt_base_dist)
+
+    src_train_val_ratio = [0.8, 0.2]
+    tgt_train_val_ratio = [0.6, 0.2]
 
     print(block_sizes)
-    print(src_ratio)
+    print(src_ratio_per_cls)
     dataset = StochasticBlockModelBlobDataset(root=args.root_dir, block_sizes=block_sizes, edge_probs=edge_probs,
                                               num_channels=feat_dim, centers=centers, cluster_std=cluster_std,
-                                              random_state=args.seed, src_ratio=src_ratio)
+                                              random_state=args.seed, src_ratio=src_ratio_per_cls, src_train_val_ratio=src_train_val_ratio, tgt_train_val_ratio=tgt_train_val_ratio)
 
     data = dataset[0]
 
@@ -50,6 +53,24 @@ def create(args):
     print(f"Number of tgt data in cls 0: {data.tgt_mask[:block_sz_cum_sum[0]].sum()}")
     print(f"Number of tgt data in cls 1: {data.tgt_mask[block_sz_cum_sum[0]:block_sz_cum_sum[1]].sum()}")
     print(f"Number of tgt data in cls 2: {data.tgt_mask[block_sz_cum_sum[1]:block_sz_cum_sum[2]].sum()}")
+
+    # print("src mask", data.src_mask)
+    # print("tgt mask", data.tgt_mask)
+    # print("train mask", data.train_mask)
+    # print("val mask", data.val_mask)
+    # print("test mask", data.test_mask)
+    import torch
+    print("src and tgt mask sum:", torch.logical_and(data.src_mask, data.tgt_mask).sum())
+    print("train and val mask sum:", torch.logical_and(data.train_mask, data.val_mask).sum())
+    print("train and test mask sum:", torch.logical_and(data.train_mask, data.test_mask).sum())
+    print("test and val mask sum:", torch.logical_and(data.test_mask, data.val_mask).sum())
+    print("train val split within source:", torch.logical_and(data.src_mask, data.train_mask).sum(), torch.logical_and(data.src_mask, data.val_mask).sum())
+    print("train val test split within target:", torch.logical_and(data.tgt_mask, data.train_mask).sum(), torch.logical_and(data.tgt_mask, data.val_mask).sum(), torch.logical_and(data.tgt_mask, data.test_mask).sum())
+    print(data.src_mask.shape)
+    print(data.tgt_mask.shape)
+    print(data.train_mask.shape)
+    print(data.val_mask.shape)
+    print(data.test_mask.shape)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="produce synthetic dataset generated from a Stochastic Block Model")
