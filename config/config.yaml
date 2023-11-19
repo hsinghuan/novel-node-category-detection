@@ -1,0 +1,30 @@
+defaults:
+  - trainer: default.yaml
+  - datamodule: default.yaml
+  - detector: pu.yaml
+  - logger: tensorboard.yaml
+  - _self_
+
+
+work_dir: "/home/hhchung/novel-node-category-detection"
+log_loc: "log"
+log_dir: ${work_dir}/${log_loc}
+
+#csbm-pu-mlp
+data_dir: "/home/hhchung/data/nncd/csbm"
+dataset_name: "StochasticBlockModelBlobDataset"
+num_src_cls: 2
+feat_dim: 2
+model_type: "mlp"
+arch_param:
+  mlp_dim_list:
+    - 2
+    - 8
+    - 2
+  mlp_dr_list:
+    - 0.5
+constrained_penalty: 1e-2
+learning_rate: 0.001
+weight_decay: 0
+max_epochs: 400
+seed: 10

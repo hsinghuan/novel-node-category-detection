@@ -1,0 +1,3 @@
+_target_: lightning.pytorch.loggers.TensorBoardLogger
+save_dir: ${log_dir}
+name: ${detector._target_}_${model_type}_${learning_rate}
