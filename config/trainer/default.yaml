@@ -1,5 +1,5 @@
 _target_: lightning.Trainer
 
-devices: [0] # "auto"
+devices: [3] # "auto"
 accelerator: "gpu"
 max_epochs: ${detector.max_epochs}

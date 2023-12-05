@@ -1,3 +1,6 @@
 _target_: src.datamodule.DataModule
 data_dir: ${data_dir}
 dataset_name: ${dataset_name}
+novel_cls: ${novel_cls}
+#alpha: ${alpha}
+dataset_subdir: ${dataset_subdir}

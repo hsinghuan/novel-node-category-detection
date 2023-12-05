@@ -10,21 +10,274 @@ work_dir: "/home/hhchung/novel-node-category-detection"
 log_loc: "log"
 log_dir: ${work_dir}/${log_loc}
 
-#csbm-pu-mlp
-data_dir: "/home/hhchung/data/nncd/csbm"
-dataset_name: "StochasticBlockModelBlobDataset"
-num_src_cls: 2
-feat_dim: 2
-model_type: "mlp"
+# csbm
+#novel_cls: 2
+#alpha: 0.05
+#data_dir: "/home/hhchung/data/nncd/csbm/0.0_0.05"
+#dataset_name: "StochasticBlockModelBlobDataset"
+
+## pu(oracle)-mlp
+#log_name: csbm_0.3_${alpha}_pu_oracle_${model_type}_${learning_rate}_${seed}
+#feat_dim: 2
+#model_type: mlp
+#arch_param:
+#  mlp_dim_list:
+#    - 2
+#    - 64
+#    - 2
+#  mlp_dr_list:
+#    - 0.5
+#oracle: True
+#constrained_penalty: 1e-2
+#learning_rate: 0.001
+#weight_decay: 0.
+#max_epochs: 2000
+#seed: 10
+
+
+## pu-mlp
+#log_name: csbm_0.0_${alpha}_pu_${model_type}_${learning_rate}_${seed}
+#feat_dim: 2
+#model_type: mlp
+#arch_param:
+#  mlp_dim_list:
+#    - 2
+#    - 64
+#    - 2
+#  mlp_dr_list:
+#    - 0.5
+#oracle: False
+#constrained_penalty: 1e-2
+#learning_rate: 0.001
+#weight_decay: 1e-2
+#max_epochs: 2000
+#seed: 10
+
+
+## pu(oracle)-gcn
+#log_name: csbm_0.3_${alpha}_pu_oracle__${model_type}_${learning_rate}_${seed}
+#feat_dim: 2
+#model_type: gcn
+#arch_param:
+#  gnn_dim_list:
+#    - 2
+#    - 64
+#    - 64
+#  mlp_dim_list:
+#    - 64
+#    - 64
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#oracle: True
+#constrained_penalty: 1e-2
+#learning_rate: 0.001
+#weight_decay: 0.
+#max_epochs: 2000
+#seed: 30
+
+## pu-gcn
+#log_name: csbm_0.0_${alpha}_pu_${model_type}_${learning_rate}_${seed}
+#feat_dim: 2
+#model_type: gcn
+#arch_param:
+#  gnn_dim_list:
+#    - 2
+#    - 64
+#    - 64
+#  mlp_dim_list:
+#    - 64
+#    - 64
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#oracle: False
+#constrained_penalty: 1e-2
+#learning_rate: 0.001
+#weight_decay: 1e-2
+#max_epochs: 2000
+#seed: 10
+
+
+# cora
+#novel_cls: 6
+#data_dir: "/home/hhchung/data/nncd/"
+#dataset_name: "Cora"
+#dataset_subdir: "shift"
+#feat_dim: 1433
+
+#method: "pu_oracle"
+#model_type: mlp
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#arch_param:
+#  mlp_dim_list:
+#    - ${feat_dim}
+#    - 128
+#    - 2
+#  mlp_dr_list:
+#    - 0.5
+#oracle: True
+#constrained_penalty: 1e-2
+#learning_rate: 0.001
+#weight_decay: 0.
+#max_epochs: 2000
+#seed: 10
+
+
+#method: pu
+#model_type: mlp
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#arch_param:
+#  mlp_dim_list:
+#    - ${feat_dim}
+#    - 128
+#    - 2
+#  mlp_dr_list:
+#    - 0.5
+#oracle: False
+#constrained_penalty: 1e-2
+#learning_rate: 0.001
+#weight_decay: 1e-2
+#max_epochs: 2000
+#seed: 10
+
+#method: "pu_oracle"
+#model_type: gcn
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#arch_param:
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 16
+#    - 16
+#  mlp_dim_list:
+#    - 16
+#    - 8
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#oracle: True
+#constrained_penalty: 1e-2
+#learning_rate: 0.001
+#weight_decay: 0.
+#max_epochs: 2000
+#seed: 30
+
+#method: pu
+#model_type: gcn
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#arch_param:
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 16
+#    - 16
+#  mlp_dim_list:
+#    - 16
+#    - 8
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#oracle: False
+#constrained_penalty: 1e-2
+#learning_rate: 0.001
+#weight_decay: 1e-2
+#max_epochs: 2000
+#seed: 10
+
+
+# citeseer
+novel_cls: 0
+data_dir: "/home/hhchung/data/nncd/"
+dataset_name: "CiteSeer"
+dataset_subdir: "shift"
+feat_dim: 3703
+
+#method: pu
+#model_type: mlp
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#arch_param:
+#  mlp_dim_list:
+#    - ${feat_dim}
+#    - 128
+#    - 2
+#  mlp_dr_list:
+#    - 0.5
+#oracle: False
+#constrained_penalty: 1e-2
+#learning_rate: 0.001
+#weight_decay: 0.
+#max_epochs: 2000
+#seed: 30
+
+
+method: pu_oracle
+model_type: mlp
+log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
 arch_param:
   mlp_dim_list:
-    - 2
-    - 8
+    - ${feat_dim}
+    - 128
     - 2
   mlp_dr_list:
     - 0.5
-constrained_penalty: 1e-2
+oracle: True
+constrained_penalty: 0.
 learning_rate: 0.001
-weight_decay: 0
-max_epochs: 400
-seed: 10
+weight_decay: 0.
+max_epochs: 2000
+seed: 30
+
+
+#method: pu
+#model_type: gcn
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#arch_param:
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 64
+#    - 16
+#  mlp_dim_list:
+#    - 16
+#    - 8
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#oracle: False
+#constrained_penalty: 1e-2
+#learning_rate: 0.001
+#weight_decay: 0.
+#max_epochs: 2000
+#seed: 10
+
+
+#method: pu_oracle
+#model_type: gcn
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#arch_param:
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 64
+#    - 16
+#  mlp_dim_list:
+#    - 16
+#    - 8
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#oracle: True
+#constrained_penalty: 0.
+#learning_rate: 0.001
+#weight_decay: 0.
+#max_epochs: 2000
+#seed: 30
