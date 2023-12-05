@@ -35,10 +35,11 @@ class VanillaPU(L.LightningModule):
         self.weight_decay = weight_decay
         self.max_epochs = max_epochs
         self.oracle = oracle
-        self.warmup_epochs = 0
+        self.warmup_epochs = max_epochs # l2 regularize all the time
         self.warm_start = True
 
         self.validation_step_outputs = []
+        self.test_step_outputs = []
         self.automatic_optimization = False
         self.save_hyperparameters()
 
@@ -76,7 +77,6 @@ class VanillaPU(L.LightningModule):
 
         if self.warm_start:
             loss += self.get_penalty(self.model, wd=self.constrained_penalty)
-
         if stage == "train":
             optimizer = self.optimizers()
             optimizer.zero_grad()
@@ -84,7 +84,7 @@ class VanillaPU(L.LightningModule):
             optimizer.step()
             return loss
 
-        elif stage == "val":
+        elif stage == "val" or stage == "test":
             probs = F.softmax(logits, dim=1)
             return loss, probs, y, y_oracle, batch.tgt_mask, batch.val_mask
         else:
@@ -109,6 +109,19 @@ class VanillaPU(L.LightningModule):
         self.validation_step_outputs.append(outputs)
         return outputs
 
+    def test_step(self, batch, batch_idx):
+        loss, probs, y, y_oracle, tgt_mask, test_mask = self.process_batch(batch, "test")
+        batch_size = len(batch.y)
+        self.log("test/loss", loss, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+        outputs = {"loss": loss.detach(),
+                   "probs": probs,
+                   "y": y,
+                   "y_oracle": y_oracle,
+                   "tgt_mask": tgt_mask,
+                   "test_mask": test_mask}
+        self.test_step_outputs.append(outputs)
+        return outputs
+
     def on_train_epoch_end(self):
         if self.current_epoch < self.warmup_epochs:
             self.warm_start = True
@@ -124,9 +137,27 @@ class VanillaPU(L.LightningModule):
 
         # compute roc_auc_score, average precision
         tgt_val_mask = np.logical_and(tgt_mask, val_mask)
+        # print(tgt_val_mask.sum().item())
+        # print(f"y oracle: {y_oracle[tgt_val_mask]}")
+        # print(f"probs: {probs[:, 1][tgt_val_mask]}")
         roc_auc = roc_auc_score(y_oracle[tgt_val_mask], probs[:, 1][tgt_val_mask])
 
-        self.log("pred/performance.AU-ROC", roc_auc, on_step=False, on_epoch=True)
+        self.log("val/performance.AU-ROC", roc_auc, on_step=False, on_epoch=True)
+
+    def on_test_epoch_end(self) -> None:
+        outputs = self.test_step_outputs
+        probs = torch.cat([o["probs"] for o in outputs], dim=0).detach().cpu().numpy()
+        y_oracle = torch.cat([o["y_oracle"] for o in outputs], dim=0).detach().cpu().numpy()
+        tgt_mask = torch.cat([o["tgt_mask"] for o in outputs], dim=0).detach().cpu().numpy()
+        test_mask = torch.cat([o["test_mask"] for o in outputs], dim=0).detach().cpu().numpy()
+
+        # compute roc_auc_score, average precision
+        tgt_test_mask = np.logical_and(tgt_mask, test_mask)
+        roc_auc = roc_auc_score(y_oracle[tgt_test_mask], probs[:, 1][tgt_test_mask])
+        self.log("test/performance.AU-ROC", roc_auc, on_step=False, on_epoch=True)
+
+        tgt_roc_auc = roc_auc_score(y_oracle[tgt_mask], probs[:, 1][tgt_mask])
+        self.log("tgt/performance.AU-ROC", tgt_roc_auc, on_step=False, on_epoch=True)
 
     def configure_optimizers(self):
         return self.optimizer
