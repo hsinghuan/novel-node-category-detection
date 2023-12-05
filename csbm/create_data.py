@@ -11,17 +11,19 @@ from utils import set_model_seed
 def create(args):
     set_model_seed(args.seed)
 
-    os.makedirs(args.root_dir, exist_ok=True)
+    root_dir = os.path.join(args.root_dir, "csbm", str(args.shift) + "_" + str(args.alpha))
 
-    num_src_base = 400
-    num_tgt_base = 400
+    os.makedirs(root_dir, exist_ok=True)
+
+    num_src_base = 2000
+    num_tgt_base = 2000
     src_base_dist = np.array([0.5, 0.5]) # can control subpopulation shift here
-    tgt_base_dist = np.array([0.5, 0.5])
-    alpha = 0.05 # can control novel ratio here
+    tgt_base_dist = np.array([0.5 - args.shift, 0.5 + args.shift])
+    # num_novel = 1000
 
     block_sizes = np.zeros(3)
     block_sizes[:2] += num_src_base * src_base_dist + num_tgt_base * tgt_base_dist
-    block_sizes[2] = num_tgt_base * alpha // (1 - alpha)
+    block_sizes[2] = num_tgt_base * args.alpha // (1 - args.alpha)
     block_sizes = block_sizes.astype(int)
 
     edge_probs = np.array([[0.02, 0.005, 0.005],
@@ -39,7 +41,7 @@ def create(args):
 
     print(block_sizes)
     print(src_ratio_per_cls)
-    dataset = StochasticBlockModelBlobDataset(root=args.root_dir, block_sizes=block_sizes, edge_probs=edge_probs,
+    dataset = StochasticBlockModelBlobDataset(root=root_dir, block_sizes=block_sizes, edge_probs=edge_probs,
                                               num_channels=feat_dim, centers=centers, cluster_std=cluster_std,
                                               random_state=args.seed, src_ratio=src_ratio_per_cls, src_train_val_ratio=src_train_val_ratio, tgt_train_val_ratio=tgt_train_val_ratio)
 
@@ -66,6 +68,8 @@ def create(args):
     print("test and val mask sum:", torch.logical_and(data.test_mask, data.val_mask).sum())
     print("train val split within source:", torch.logical_and(data.src_mask, data.train_mask).sum(), torch.logical_and(data.src_mask, data.val_mask).sum())
     print("train val test split within target:", torch.logical_and(data.tgt_mask, data.train_mask).sum(), torch.logical_and(data.tgt_mask, data.val_mask).sum(), torch.logical_and(data.tgt_mask, data.test_mask).sum())
+    print("src distribution", torch.bincount(data.y[data.src_mask]))
+    print("tgt distribution", torch.bincount(data.y[data.tgt_mask]))
     print(data.src_mask.shape)
     print(data.tgt_mask.shape)
     print(data.train_mask.shape)
@@ -76,5 +80,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="produce synthetic dataset generated from a Stochastic Block Model")
     parser.add_argument("--root_dir", type=str)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--shift", type=float, default=0.)
+    parser.add_argument("--alpha", type=float, default=0.05)
     args = parser.parse_args()
     create(args)

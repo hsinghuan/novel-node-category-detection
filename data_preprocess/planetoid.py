@@ -62,7 +62,7 @@ def preprocess(dataset_name, preprocess_name, cls_num, novel_cls, src_ratio_per_
 
     dir = os.path.join(root_dir, dataset_name, preprocess_name)
     os.makedirs(dir)
-    torch.save([data], os.path.join(dir, "data.pt"))
+    torch.save(data, os.path.join(dir, "data.pt"))
 
     print("src and tgt mask sum:", torch.logical_and(data.src_mask, data.tgt_mask).sum())
     print("train and val mask sum:", torch.logical_and(data.train_mask, data.val_mask).sum())
@@ -95,7 +95,7 @@ if __name__ == "__main__":
         preprocess(args.dataset, preprocess_name, cls_num, novel_cls, src_ratio_per_cls, args)
 
         preprocess_name = "shift"
-        src_ratio_per_cls = np.array([0.3, 0.7, 0.4, 0.6, 0.2, 0.8, 0.])
+        src_ratio_per_cls = np.array([0.1, 0.9, 0.1, 0.9, 0.1, 0.9, 0.])
         preprocess(args.dataset, preprocess_name, cls_num, novel_cls, src_ratio_per_cls, args)
 
     elif args.dataset == "CiteSeer":
@@ -107,5 +107,5 @@ if __name__ == "__main__":
         preprocess(args.dataset, preprocess_name, cls_num, novel_cls, src_ratio_per_cls, args)
 
         preprocess_name = "shift"
-        src_ratio_per_cls = np.array([0., 0.3, 0.7, 0.2, 0.8, 0.4])
+        src_ratio_per_cls = np.array([0., 0.1, 0.9, 0.1, 0.9, 0.5])
         preprocess(args.dataset, preprocess_name, cls_num, novel_cls, src_ratio_per_cls, args)

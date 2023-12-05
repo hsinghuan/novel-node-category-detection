@@ -81,7 +81,7 @@ class StochasticBlockModelBlobDataset(InMemoryDataset):
 
 
         # src/tgt split with configurable class ratio
-        src_per_class = (self.block_sizes[:-1] * self.src_ratio).type(torch.int64)
+        src_per_class = torch.round(self.block_sizes[:-1] * self.src_ratio).type(torch.int64)
         # shuffle indices within each class
         # input: [4, 4, 2]
         # output: [0, 3, 1, 2, 4, 6, 7, 5, 9, 8]
