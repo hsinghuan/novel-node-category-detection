@@ -1,12 +1,15 @@
 import os
 import numpy as np
+import argparse
 from typing import Callable, List, Optional, Union
 import torch
 from torch import Tensor
 from torch_geometric.data import Data, InMemoryDataset
 from torch_geometric.utils import stochastic_blockmodel_graph
+import lightning as L
 
-class StochasticBlockModelBlobDataset(InMemoryDataset):
+
+class CSBM(InMemoryDataset):
     def __init__(
             self,
             root: str,
@@ -125,11 +128,67 @@ class StochasticBlockModelBlobDataset(InMemoryDataset):
 
         torch.save(self.collate([data]), self.processed_paths[0])
 
+def create(args):
+    root_dir = os.path.join(args.root_dir, "csbm", str(args.shift) + "_" + str(args.alpha))
 
-def load_sbm_dataset(data_dir:str):
-    dataset_name = "StochasticBlockModelBlobDataset"
-    leaf_dir = os.path.join(os.path.join(data_dir, dataset_name, "processed"))
-    dir_list = os.listdir(leaf_dir)
-    path = os.path.join(leaf_dir, list(filter(lambda fname: "data" in fname, dir_list))[0])
-    data, _ = torch.load(path)
-    return data
+    os.makedirs(root_dir)
+
+    num_src_base = 2000
+    num_tgt_base = 2000
+    src_base_dist = np.array([0.5, 0.5]) # can control subpopulation shift here
+    tgt_base_dist = np.array([0.5 - args.shift, 0.5 + args.shift])
+    # num_novel = 1000
+
+    block_sizes = np.zeros(3)
+    block_sizes[:2] += num_src_base * src_base_dist + num_tgt_base * tgt_base_dist
+    block_sizes[2] = num_tgt_base * args.alpha // (1 - args.alpha)
+    block_sizes = block_sizes.astype(int)
+
+    edge_probs = np.array([[0.02, 0.009, 0.009],
+                           [0.009, 0.02, 0.009],
+                           [0.009, 0.009, 0.02]])
+    feat_dim = 2
+    centers = np.stack([[np.cos(0), np.sin(0)],
+                        [np.cos(2 * np.pi / 3), np.sin(2 * np.pi / 3)],
+                        [np.cos(4 * np.pi / 3), np.sin(4 * np.pi / 3)]])
+    cluster_std = 1 / np.sqrt(2)
+    src_ratio_per_cls = np.divide(src_base_dist, src_base_dist + tgt_base_dist)
+
+    src_train_val_ratio = [0.8, 0.2]
+    tgt_train_val_ratio = [0.6, 0.2]
+
+    print(block_sizes)
+    print(src_ratio_per_cls)
+    dataset = CSBM(root=root_dir, block_sizes=block_sizes, edge_probs=edge_probs,
+                   num_channels=feat_dim, centers=centers, cluster_std=cluster_std,
+                   random_state=args.seed, src_ratio=src_ratio_per_cls, src_train_val_ratio=src_train_val_ratio, tgt_train_val_ratio=tgt_train_val_ratio)
+
+    data = dataset[0]
+
+    block_sz_cum_sum = np.cumsum(block_sizes)
+    print(f"Number of src data in cls 0: {data.src_mask[:block_sz_cum_sum[0]].sum()}")
+    print(f"Number of src data in cls 1: {data.src_mask[block_sz_cum_sum[0]:block_sz_cum_sum[1]].sum()}")
+    print(f"Number of src data in cls 2: {data.src_mask[block_sz_cum_sum[1]:block_sz_cum_sum[2]].sum()}")
+
+    print(f"Number of tgt data in cls 0: {data.tgt_mask[:block_sz_cum_sum[0]].sum()}")
+    print(f"Number of tgt data in cls 1: {data.tgt_mask[block_sz_cum_sum[0]:block_sz_cum_sum[1]].sum()}")
+    print(f"Number of tgt data in cls 2: {data.tgt_mask[block_sz_cum_sum[1]:block_sz_cum_sum[2]].sum()}")
+
+    print("src and tgt mask sum:", torch.logical_and(data.src_mask, data.tgt_mask).sum())
+    print("train and val mask sum:", torch.logical_and(data.train_mask, data.val_mask).sum())
+    print("train and test mask sum:", torch.logical_and(data.train_mask, data.test_mask).sum())
+    print("test and val mask sum:", torch.logical_and(data.test_mask, data.val_mask).sum())
+    print("train val split within source:", torch.logical_and(data.src_mask, data.train_mask).sum(), torch.logical_and(data.src_mask, data.val_mask).sum())
+    print("train val test split within target:", torch.logical_and(data.tgt_mask, data.train_mask).sum(), torch.logical_and(data.tgt_mask, data.val_mask).sum(), torch.logical_and(data.tgt_mask, data.test_mask).sum())
+    print("src distribution", torch.bincount(data.y[data.src_mask]))
+    print("tgt distribution", torch.bincount(data.y[data.tgt_mask]))
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="produce synthetic dataset generated from a Stochastic Block Model")
+    parser.add_argument("--root_dir", type=str)
+    parser.add_argument("--shift", type=float, default=0.)
+    parser.add_argument("--alpha", type=float, default=0.05)
+    parser.add_argument("--seed", type=int, default=42)
+    args = parser.parse_args()
+    L.seed_everything(args.seed)
+    create(args)

@@ -3,6 +3,7 @@ import argparse
 import os
 import torch
 from torch_geometric import datasets
+import lightning as L
 
 def preprocess(dataset_name, preprocess_name, cls_num, novel_cls, src_ratio_per_cls, args):
     root_dir = args.root_dir
@@ -85,7 +86,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Preprocess Cora for novel node category detection")
     parser.add_argument("--root_dir", type=str)
     parser.add_argument("--dataset", type=str)
+    parser.add_argument("--seed", type=int)
     args = parser.parse_args()
+    L.seed_everything(args.seed)
     if args.dataset == "Cora":
         cls_num = 7
         novel_cls = 6
