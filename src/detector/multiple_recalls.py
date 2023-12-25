@@ -1,18 +1,19 @@
+from typing import Optional, Callable
 import numpy as np
 from sklearn.metrics import roc_auc_score
 import lightning as L
+from lightning.pytorch.core.optimizer import LightningOptimizer
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import cooper
 
-from src.utils.core_utils import recall_from_logits
+from src.utils.core_utils import recall_from_logits, fpr_from_logits
 from src.utils.model_utils import get_model_optimizer
 
 
 class RecallConstrainedNodeClassification(cooper.ConstrainedMinimizationProblem):
     def __init__(self, target_recall, wd, penalty_type, logit_multiplier, device, mode="domain_disc"):
-        self.criterion = nn.CrossEntropyLoss()
         self.target_recall = target_recall
         self.wd = wd
         self.penalty_type = penalty_type
@@ -31,85 +32,76 @@ class RecallConstrainedNodeClassification(cooper.ConstrainedMinimizationProblem)
             penalty_term = sum(torch.abs(p).sum() for p in model.parameters())
         return penalty_lambda * penalty_term
 
-    def closure(self, model, data, targets, mask):
-        pred_logits = model.forward(data.x, data.edge_index) # should specify eval or train?
+    def closure(self, model, pred_logits, y):
         pred_logits = pred_logits.reshape(pred_logits.shape[0], -1, 2) # num nodes x num recall constraints (heads) x binary labels
-        # with torch.no_grad():
-        #     preds = torch.argmax(pred_logits, dim=-1)
-        pred_logits = pred_logits[mask] # mask by train/val etc
-        targets = targets[mask]
 
         penalty = self.get_penalty(model)
-        cross_ent_ls = []
-        recall_ls = []
-        recall_proxy_ls = []
-        recall_loss_ls = []
-        # pred_temp_ls = []
-        cross_ent_target_ls = [] # torch.tensor([], requires_grad=True, device=self.device)
+        cross_ent_ls = torch.tensor([], requires_grad=True, device=self.device)
+        fpr_ls = torch.tensor([], requires_grad=True, device=self.device)
+        fpr_proxy_ls = torch.tensor([], requires_grad=True, device=self.device)
+        recall_ls = torch.tensor([], requires_grad=True, device=self.device)
+        recall_proxy_ls = torch.tensor([], requires_grad=True, device=self.device)
+        recall_loss_ls = torch.tensor([], requires_grad=True, device=self.device)
+        cross_ent_target_ls = torch.tensor([], requires_grad=True, device=self.device)
+        loss = 0.
 
         for i in range(pred_logits.shape[1]): # iterate through recall constraints
-            cross_ent = self.criterion(pred_logits[targets==0][:,i,:], targets[targets==0]) # why mask with target == 0
-            cross_ent_target = self.criterion(pred_logits[targets==1][:,i,:], targets[targets==1]) # why mask with target == 1
-            recall, recall_proxy, recall_loss = recall_from_logits(self.logit_multiplier * pred_logits[:,i,:], targets)
+            cross_ent = F.cross_entropy(pred_logits[y==0][:,i,:], y[y==0])
+            cross_ent_target = F.cross_entropy(pred_logits[y==1][:,i,:], y[y==1])
+            fpr, fpr_proxy = fpr_from_logits(self.logit_multiplier * pred_logits[:,i,:], y)
+            recall, recall_proxy, recall_loss = recall_from_logits(self.logit_multiplier * pred_logits[:,i,:], y)
+            loss += fpr_proxy
 
-            cross_ent_ls.append(cross_ent.item())
-            cross_ent_target_ls.append(cross_ent_target.item())
-            recall_ls.append(recall.item())
-            recall_proxy_ls.append(recall_proxy.item())
-            recall_loss_ls.append(recall_loss.item())
+            cross_ent_ls = torch.cat((cross_ent_ls, torch.unsqueeze(cross_ent, 0)))
+            cross_ent_target_ls = torch.cat((cross_ent_target_ls, torch.unsqueeze(cross_ent_target,0)))
+            fpr_ls = torch.cat((fpr_ls, torch.unsqueeze(fpr,0)))
+            fpr_proxy_ls = torch.cat((fpr_proxy_ls, torch.unsqueeze(fpr_proxy,0)))
+            recall_ls = torch.cat((recall_ls, torch.unsqueeze(recall,0)))
+            recall_proxy_ls = torch.cat((recall_proxy_ls, torch.unsqueeze(recall_proxy,0)))
+            recall_loss_ls = torch.cat((recall_loss_ls, torch.unsqueeze(recall_loss,0)))
 
-        cross_ent_ls = torch.tensor(cross_ent_ls, device=self.device)
-        recall_ls = torch.tensor(recall_ls, device=self.device)
-        recall_proxy_ls = torch.tensor(recall_proxy_ls, device=self.device)
-        recall_loss_ls = torch.tensor(recall_loss_ls, device=self.device)
-        cross_ent_target_ls = torch.tensor(cross_ent_target_ls, device=self.device)
-
-        loss = cross_ent_ls + penalty
-        loss_target = cross_ent_target + penalty
+        # loss = cross_ent_ls + penalty
+        # loss = fpr_proxy_ls + penalty
 
         ineq_defect = torch.tensor(self.target_recall, device=self.device) - recall_ls
         proxy_ineq_defect = torch.tensor(self.target_recall, device=self.device) - recall_proxy_ls
 
-        print(f"loss: {loss}")
-        print(f"loss target: {loss_target}")
-        print(f"cross ent list: {cross_ent_ls}")
-        print(f"cross ent target list: {cross_ent_target_ls}")
-        print(f"recall list: {recall_ls}")
-        print(f"inequality defect: {ineq_defect}")
-        print(f"proxy ineq defect: {proxy_ineq_defect}")
 
-        return cooper.CMPState(loss=loss,
+        return cooper.CMPState(loss=loss, # .sum(),
                                ineq_defect=ineq_defect,
                                proxy_ineq_defect=proxy_ineq_defect,
                                eq_defect=None,
                                misc={"cross_ent": cross_ent_ls,
-                                    "cross_ent_target": cross_ent_target_ls,
-                                    "recall_proxy": recall_proxy_ls,
-                                    "recall_loss": recall_loss_ls})
+                                     "cross_ent_target": cross_ent_target_ls,
+                                     "fpr": fpr_ls,
+                                     "fpr_proxy": fpr_proxy_ls,
+                                     "recall": recall_ls,
+                                     "recall_proxy": recall_proxy_ls,
+                                     "recall_loss": recall_loss_ls})
+
 
 
 class CoNoC(L.LightningModule):
     def __init__(self,
                  mode,
-                 model_type: str,
+                 model_type,
                  arch_param,
                  dataset_name,
                  novel_cls,
-                 target_precision,
-                 precision_confidence,
-                 logit_multiplier,
-                 constrained_penalty,
+                 target_recalls,
                  learning_rate,
                  dual_learning_rate,
-                 weight_decay,
                  max_epochs,
-                 warmup_epochs,
                  seed,
                  device,
-                 penalty_type="l2"):
+                 warmup_epochs=0,
+                 weight_decay=0.,
+                 penalty_type="l2",
+                 constrained_penalty=0.,
+                 logit_multiplier=1.):
         super().__init__()
 
-        self.target_recalls = [0.02, 0.05, 0.10, 0.15, 0.20, 0.25, 0.3, 0.35, 0.4, 0.45]
+        self.target_recalls = target_recalls
         self.num_outputs = 2 * len(self.target_recalls)
         self.model_type = model_type
         self.dataset_name = dataset_name
@@ -123,27 +115,36 @@ class CoNoC(L.LightningModule):
         self.mode = mode
 
         self.model, self.primal_optimizer = get_model_optimizer(model_type, arch_param, learning_rate, weight_decay)
-        self.target_precision = target_precision
-        self.precision_confidence = precision_confidence
 
         if self.mode == "constrained_opt":
-            self.dual_optimizer = cooper.optim.partial_optimizer(torch.optim.Adam, lr=dual_learning_rate, weight_decay=weight_decay)
             self.cmp = RecallConstrainedNodeClassification(target_recall=self.target_recalls,
                                                            wd=constrained_penalty,
                                                            penalty_type=penalty_type,
                                                            logit_multiplier=logit_multiplier,
                                                            device=device,
                                                            mode=self.mode)
-            self.formulation = cooper.LagrangianFormulation(self.cmp, ineq_init=torch.tensor([1. for _ in range(len(self.target_recalls))]))
-            self.coop = cooper.ConstrainedOptimizer(self.formulation, self.primal_optimizer, self.dual_optimizer)
+            self.formulation = cooper.LagrangianFormulation(self.cmp, ineq_init=torch.tensor([0.1 for _ in range(len(self.target_recalls))]))
+            self.dual_optimizer = cooper.optim.partial_optimizer(torch.optim.Adam, lr=dual_learning_rate, weight_decay=weight_decay)
+            self.coop = cooper.ConstrainedOptimizer(formulation=self.formulation, primal_optimizer=self.primal_optimizer, dual_optimizer=self.dual_optimizer)
+            self.coop.zero_grad()
         else:
+            self.cmp = RecallConstrainedNodeClassification(target_recall=self.target_recalls,
+                                                           wd=constrained_penalty,
+                                                           penalty_type=penalty_type,
+                                                           logit_multiplier=logit_multiplier,
+                                                           device=device,
+                                                           mode=self.mode)
+            self.formulation = cooper.LagrangianFormulation(self.cmp, ineq_init=torch.tensor([0.1 for _ in range(len(self.target_recalls))]))
             self.dual_optimizer = None
-            self.dual_lr_scheduler = None
-
+            self.coop = cooper.ConstrainedOptimizer(formulation=self.formulation,
+                                                    primal_optimizer=self.primal_optimizer,
+                                                    dual_optimizer=self.dual_optimizer)
+            self.coop.zero_grad()
+        self.coop.sanity_checks()
         self.max_epochs = max_epochs
         self.warmup_epochs = warmup_epochs
+        self.warm_start = False if self.warmup_epochs == 0 else True
         self.seed = seed
-        self.warm_start = True
 
         self.validation_step_outputs = []
         self.test_step_outputs = []
@@ -159,71 +160,148 @@ class CoNoC(L.LightningModule):
     def process_batch(self, batch, stage):
         if stage == "train":
             mask = batch.train_mask
-            y = batch.tgt_mask.type(torch.int64)
             if self.warm_start:
                 logits = self.forward(batch)
                 logits = logits.reshape(logits.shape[0], -1, 2)
                 loss_ls = []
                 for i in range(logits.shape[1]):
-                    loss = nn.CrossEntropyLoss(logits[:,i,:], y)
+                    loss = F.cross_entropy(logits[:,i,:][mask], y[mask])
                     loss_ls.append(loss.item())
-                loss_ls = torch.tensor(loss_ls, device=self._device)
-                self.primal_optimizer.zero_grad()
+                loss_ls = torch.tensor(loss_ls, device=self._device, requires_grad=True)
+                primal_optimizer = self.optimizers()
+                # self.primal_optimizer.zero_grad()
+                primal_optimizer.zero_grad()
                 self.manual_backward(loss_ls.sum())
-                self.primal_optimizer.step()
-                return loss_ls, torch.tensor(0.), torch.tensor(0.), torch.tensor(0.)
+                # self.primal_optimizer.step()
+                primal_optimizer.step()
+                return loss_ls,\
+                       torch.tensor(0.),\
+                       None,\
+                       None,\
+                       torch.tensor(0.),\
+                       torch.tensor([0.] * len(self.target_recalls)),\
+                       torch.tensor([0.] * len(self.target_recalls)),\
+                       torch.tensor([0.] * len(self.target_recalls)),\
+                       torch.tensor([0.] * len(self.target_recalls))
             else:
-                lagrangian = self.formulation.composite_objective
+                logits = self.forward(batch)
+                lagrangian = self.formulation.composite_objective(self.cmp.closure, self.model, logits[mask], y[mask])
+                primal_optimizer = self.optimizers()
+                primal_optimizer.zero_grad(); primal_optimizer.step() # dummy call to make lightning module do checkpointing, won't update the weights
                 self.formulation.custom_backward(lagrangian)
-                self.coop.step(self.cmp.closure, self.model, batch, y, mask)
-                return self.cmp.state.loss, self.cmp.get_penalty(self.model), self.cmp.state.ineq_defect, lagrangian
+                self.coop.step()
+                self.coop.zero_grad()
+                return self.cmp.state.loss,\
+                       self.cmp.get_penalty(self.model),\
+                       self.cmp.state.ineq_defect,\
+                       self.cmp.state.proxy_ineq_defect,\
+                       lagrangian,\
+                       self.cmp.state.misc["fpr_proxy"],\
+                       self.cmp.state.misc["fpr"],\
+                       self.cmp.state.misc["recall_proxy"],\
+                       self.cmp.state.misc["recall"]
+
         elif stage == "val" or stage == "test":
             if stage == "val":
                 mask = batch.val_mask
             elif stage == "test":
                 mask = batch.test_mask
             logits = self.forward(batch)
-            logits = logits.reshape(logits.shape[0], -1, 2)
             probs = F.softmax(logits, dim=-1)
-            return probs, batch.tgt_mask, mask
+            probs = probs.reshape(probs.shape[0], -1, 2)
+
+            lagrangian = self.formulation.composite_objective(self.cmp.closure, self.model, logits[mask], y[mask])
+
+            # return probs, lagrangian
+            return self.cmp.state.loss, \
+                   self.cmp.get_penalty(self.model), \
+                   self.cmp.state.ineq_defect, \
+                   self.cmp.state.proxy_ineq_defect,\
+                   lagrangian, \
+                   self.cmp.state.misc["fpr_proxy"], \
+                   self.cmp.state.misc["fpr"], \
+                   self.cmp.state.misc["recall_proxy"], \
+                   self.cmp.state.misc["recall"], \
+                   probs
 
     def training_step(self, batch, batch_idx):
-        loss, penalty, ineq_defect, lagrangian_value = self.process_batch(batch, "train")
-        self.log("train/loss.constraint_penalty", penalty, on_step=True, on_epoch=True, prog_bar=False)
-        self.log("train/loss.lagrangian", lagrangian_value, on_step=True, on_epoch=True, prog_bar=False)
+        objective, penalty, ineq_defect, proxy_ineq_defect, lagrangian_value, fpr_proxy, fpr, recall_proxy, recall = self.process_batch(batch, "train")
+        batch_size = batch.train_mask.sum().item()
+
+        self.log("train/constraint_penalty", penalty, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+        self.log("train/loss", lagrangian_value, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
         for i in range(len(self.target_recalls)):
-            self.log("train/loss.cross_ent_" + str(self.target_recalls[i]), loss[i], on_step=True, on_epoch=True, prog_bar=False)
+            self.log("train/fpr_proxy_" + str(self.target_recalls[i]), fpr_proxy[i], on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+            self.log("train/performance.fpr_" + str(self.target_recalls[i]), fpr[i], on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+            self.log("train/recall_proxy_" + str(self.target_recalls[i]), recall_proxy[i], on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+            self.log("train/performance.recall_" + str(self.target_recalls[i]), recall[i], on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
 
-        if not self.warm_start and self.mode.startwith("constrained"):
+        if not self.warm_start and self.mode == "constrained_opt":
             for i in range(len(self.target_recalls)):
-                self.log("train/constraints.inequality_violation_" + str(self.target_recalls[i]), ineq_defect[i], on_step=True, on_epoch=True, prog_bar=False)
-                self.log("train/constraints.multiplier_value_" + str(self.target_recalls[i]), self.formulation.ineq_multipliers.weight.detach().cpu()[i], on_step=True, on_epoch=True, prog_bar=False)
+                self.log("train/constraints.inequality_violation_" + str(self.target_recalls[i]), ineq_defect[i], on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+                self.log("train/constraints.proxy_inequality_violation_" + str(self.target_recalls[i]), proxy_ineq_defect[i], on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+                self.log("train/constraints.multiplier_value_" + str(self.target_recalls[i]), self.formulation.ineq_multipliers.weight.detach().cpu()[i], on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
 
-        return {"lagrangian_loss": lagrangian_value}
+        return {"loss": lagrangian_value.detach()}# {"lagrangian_loss": lagrangian_value}
 
     def on_training_epoch_end(self):
         if self.current_epoch >= self.warmup_epochs:
             self.warm_start = False
 
     def validation_step(self, batch, batch_idx):
-        probs, tgt_mask, val_mask = self.process_batch(batch, "val")
+        objective, penalty, ineq_defect, proxy_ineq_defect, lagrangian_value, fpr_proxy, fpr, recall_proxy, recall, probs = self.process_batch(batch, "val")
+        batch_size = batch.val_mask.sum().item()
+        self.log("val/constraint_penalty", penalty, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+        self.log("val/loss", lagrangian_value, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+        for i in range(len(self.target_recalls)):
+            self.log("val/fpr_proxy_" + str(self.target_recalls[i]), fpr_proxy[i], on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+            self.log("val/performance.fpr_" + str(self.target_recalls[i]), fpr[i], on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+            self.log("val/recall_proxy_" + str(self.target_recalls[i]), recall_proxy[i], on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+            self.log("val/performance.recall_" + str(self.target_recalls[i]), recall[i], on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+            if not self.warm_start and self.mode == "constrained_opt":
+                self.log("val/constraints.inequality_violation_" + str(self.target_recalls[i]), ineq_defect[i],
+                         on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+                self.log("val/constraints.proxy_inequality_violation_" + str(self.target_recalls[i]),
+                         proxy_ineq_defect[i], on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+                self.log("val/constraints.multiplier_value_" + str(self.target_recalls[i]),
+                         self.formulation.ineq_multipliers.weight.detach().cpu()[i], on_step=True, on_epoch=True,
+                         prog_bar=False, batch_size=batch_size)
         y_oracle = torch.zeros_like(batch.y, dtype=torch.int64)
         y_oracle[batch.y == self.novel_cls] = 1
-        outputs = {"probs": probs,
+        outputs = {"loss": lagrangian_value.detach(),
+                   "probs": probs,
                    "y_oracle": y_oracle,
-                   "tgt_mask": tgt_mask,
-                   "val_mask": val_mask}
+                   "tgt_mask": batch.tgt_mask,
+                   "val_mask": batch.val_mask}
         self.validation_step_outputs.append(outputs)
         return outputs
 
     def test_step(self, batch, batch_idx):
-        probs, tgt_mask, test_mask = self.process_batch(batch, "test")
+        # probs, lagrangian_value = self.process_batch(batch, "test")
+        objective, penalty, ineq_defect, proxy_ineq_defect, lagrangian_value, fpr_proxy, fpr, recall_proxy, recall, probs = self.process_batch(batch, "test")
+        batch_size = batch.test_mask.sum().item()
+        self.log("test/constraint_penalty", penalty, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+        self.log("test/loss", lagrangian_value, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+        for i in range(len(self.target_recalls)):
+            self.log("test/fpr_proxy_" + str(self.target_recalls[i]), fpr_proxy[i], on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+            self.log("test/performance.fpr_" + str(self.target_recalls[i]), fpr[i], on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+            self.log("test/recall_proxy_" + str(self.target_recalls[i]), recall_proxy[i], on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+            self.log("test/performance.recall_" + str(self.target_recalls[i]), recall[i], on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+            if not self.warm_start and self.mode == "constrained_opt":
+                self.log("test/constraints.inequality_violation_" + str(self.target_recalls[i]), ineq_defect[i],
+                         on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+                self.log("test/constraints.proxy_inequality_violation_" + str(self.target_recalls[i]),
+                         proxy_ineq_defect[i], on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+                self.log("test/constraints.multiplier_value_" + str(self.target_recalls[i]),
+                         self.formulation.ineq_multipliers.weight.detach().cpu()[i], on_step=True, on_epoch=True,
+                         prog_bar=False, batch_size=batch_size)
         y_oracle = torch.zeros_like(batch.y, dtype=torch.int64)
         y_oracle[batch.y == self.novel_cls] = 1
-        outputs = {"probs": probs,
+        outputs = {"loss": lagrangian_value.detach(),
+                   "probs": probs,
                    "y_oracle": y_oracle,
-                   "tgt_mask": tgt_mask,
-                   "test_mask": test_mask}
+                   "tgt_mask": batch.tgt_mask,
+                   "test_mask": batch.test_mask}
         self.test_step_outputs.append(outputs)
         return outputs
 
@@ -235,10 +313,10 @@ class CoNoC(L.LightningModule):
         val_mask = torch.cat([o["val_mask"] for o in outputs], dim=0).detach().cpu().numpy()
 
         tgt_val_mask = np.logical_and(tgt_mask, val_mask)
-
+        batch_size = tgt_val_mask.sum()
         for i in range(len(self.target_recalls)):
             roc_auc = roc_auc_score(y_oracle[tgt_val_mask], probs[:, i, 1][tgt_val_mask])
-            self.log("val/performance.AU-ROC_" + str(self.target_recalls[i]), roc_auc, on_step=False, on_epoch=True)
+            self.log("val/performance.AU-ROC_" + str(self.target_recalls[i]), roc_auc, on_step=False, on_epoch=True, batch_size=batch_size)
 
     def on_test_epoch_end(self):
         outputs = self.test_step_outputs
@@ -248,14 +326,16 @@ class CoNoC(L.LightningModule):
         test_mask = torch.cat([o["test_mask"] for o in outputs], dim=0).detach().cpu().numpy()
 
         tgt_test_mask = np.logical_and(tgt_mask, test_mask)
-
         for i in range(len(self.target_recalls)):
             roc_auc = roc_auc_score(y_oracle[tgt_test_mask], probs[:, i, 1][tgt_test_mask])
-            self.log("val/performance.AU-ROC_" + str(self.target_recalls[i]), roc_auc, on_step=False, on_epoch=True)
+            self.log("test/performance.AU-ROC_" + str(self.target_recalls[i]), roc_auc, on_step=False, on_epoch=True, batch_size=tgt_test_mask.sum())
 
         for i in range(len(self.target_recalls)):
             tgt_roc_auc = roc_auc_score(y_oracle[tgt_mask], probs[:, i, 1][tgt_mask])
-            self.log("tgt/performance.AU-ROC_" + str(self.target_recalls[i]), tgt_roc_auc, on_step=False, on_epoch=True)
+            self.log("tgt/performance.AU-ROC_" + str(self.target_recalls[i]), tgt_roc_auc, on_step=False, on_epoch=True, batch_size=tgt_mask.sum())
+
+    def predict_step(self, batch, batch_idx):
+        return self(batch)
 
     def configure_optimizers(self):
         return self.primal_optimizer
