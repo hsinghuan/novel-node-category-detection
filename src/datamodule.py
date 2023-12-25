@@ -31,7 +31,6 @@ class DataModule(L.LightningDataModule):
             leaf_dir = os.path.join(self.data_dir, self.dataset_name, "processed")
         dir_list = os.listdir(leaf_dir)
         path = os.path.join(leaf_dir, list(filter(lambda fname: "data" in fname, dir_list))[0])
-        print(f"path: {path}")
         loaded = torch.load(path)
         if isinstance(loaded, Tuple):
             self.data = loaded[0]
@@ -45,6 +44,9 @@ class DataModule(L.LightningDataModule):
         return DataLoader([self.data], batch_size=1)
 
     def test_dataloader(self):
+        return DataLoader([self.data], batch_size=1)
+
+    def predict_dataloader(self):
         return DataLoader([self.data], batch_size=1)
 
     def _dropout_novel_nodes(self):

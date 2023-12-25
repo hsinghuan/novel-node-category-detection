@@ -86,19 +86,19 @@ class VanillaPU(L.LightningModule):
 
         elif stage == "val" or stage == "test":
             probs = F.softmax(logits, dim=1)
-            return loss, probs, y, y_oracle, batch.tgt_mask, batch.val_mask
+            return loss, probs, y, y_oracle, batch.tgt_mask, mask
         else:
             raise ValueError(f"Invalid stage {stage}")
 
     def training_step(self, batch, batch_idx):
         loss = self.process_batch(batch, "train")
-        batch_size = len(batch.y)
+        batch_size = batch.train_mask.sum().item()
         self.log("train/loss", loss, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
         return {"loss": loss.detach()}
 
     def validation_step(self, batch, batch_idx):
         loss, probs, y, y_oracle, tgt_mask, val_mask = self.process_batch(batch, "val")
-        batch_size = len(batch.y)
+        batch_size = batch.val_mask.sum().item()
         self.log("val/loss", loss, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
         outputs =  {"loss": loss.detach(),
                     "probs": probs,
@@ -111,7 +111,7 @@ class VanillaPU(L.LightningModule):
 
     def test_step(self, batch, batch_idx):
         loss, probs, y, y_oracle, tgt_mask, test_mask = self.process_batch(batch, "test")
-        batch_size = len(batch.y)
+        batch_size = batch.test_mask.sum().item()
         self.log("test/loss", loss, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
         outputs = {"loss": loss.detach(),
                    "probs": probs,
