@@ -144,14 +144,14 @@ def create(args):
     block_sizes[2] = num_tgt_base * args.alpha // (1 - args.alpha)
     block_sizes = block_sizes.astype(int)
 
-    edge_probs = np.array([[0.02, 0.009, 0.009],
-                           [0.009, 0.02, 0.009],
-                           [0.009, 0.009, 0.02]])
+    edge_probs = np.array([[0.012, 0.006, 0.006],
+                           [0.006, 0.012, 0.006],
+                           [0.006, 0.006, 0.012]])
     feat_dim = 2
     centers = np.stack([[np.cos(0), np.sin(0)],
                         [np.cos(2 * np.pi / 3), np.sin(2 * np.pi / 3)],
                         [np.cos(4 * np.pi / 3), np.sin(4 * np.pi / 3)]])
-    cluster_std = 1 / np.sqrt(2)
+    cluster_std = 1 # / np.sqrt(2)
     src_ratio_per_cls = np.divide(src_base_dist, src_base_dist + tgt_base_dist)
 
     src_train_val_ratio = [0.8, 0.2]
