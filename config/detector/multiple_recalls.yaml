@@ -11,6 +11,4 @@ dual_learning_rate: ${dual_learning_rate}
 constrained_penalty: ${constrained_penalty}
 max_epochs: ${max_epochs}
 seed: ${seed}
-#device: ${device}
-#src_src_smooth: ${src_src_smooth}
 lagrange_multiplier_init: ${lagrange_multiplier_init}

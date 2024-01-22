@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from src.model import Model, MLP, LinearGCN, GCN, GAT, PUGNN
+from src.model import Model, MLP, LinearGCN, GCN, GAT
 
 
 

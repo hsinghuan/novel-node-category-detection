@@ -15,7 +15,7 @@ test_ckpt_version: 0
 
 # csbm
 novel_cls: 2
-csbm_config: 0.3_0.05
+csbm_config: 0.0_0.05
 data_dir: /home/hhchung/data/nncd/csbm/${csbm_config}
 dataset_name: CSBM
 dataset_subdir: null
@@ -155,14 +155,14 @@ arch_param:
 mode: constrained_opt
 target_recalls:
   - 0.1
-learning_rate: 0.001 # shift
+learning_rate: 0.001
 dual_learning_rate: 0.001
 constrained_penalty: 1e-2
 max_epochs: 2000
 lagrange_multiplier_init: 1.
 model_selection_args:
   criteria: conoc
-  beta: 0.1 # 0.01 for no shift
+  beta: 0.01 # 0.01 for no shift, 0.1 for shift
 
 
 

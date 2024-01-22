@@ -49,7 +49,7 @@ class RecallConstrainedNodeClassification(cooper.ConstrainedMinimizationProblem)
             cross_ent_target = F.cross_entropy(pred_logits[y==1][:,i,:], y[y==1])
             fpr, fpr_proxy = fpr_from_logits(self.logit_multiplier * pred_logits[:,i,:], y)
             recall, recall_proxy, recall_loss = recall_from_logits(self.logit_multiplier * pred_logits[:,i,:], y)
-            loss += fpr_proxy
+            loss += cross_ent # fpr_proxy
 
             cross_ent_ls = torch.cat((cross_ent_ls, torch.unsqueeze(cross_ent, 0)))
             cross_ent_target_ls = torch.cat((cross_ent_target_ls, torch.unsqueeze(cross_ent_target,0)))
