@@ -1,24 +1,30 @@
 defaults:
   - trainer: default.yaml
   - datamodule: default.yaml
-  - detector: pu.yaml
+  - detector: multiple_recalls.yaml
   - logger: tensorboard.yaml
   - _self_
 
 
-work_dir: "/home/hhchung/novel-node-category-detection"
-log_loc: "log"
+work_dir: /home/hhchung/novel-node-category-detection
+log_loc: log
 log_dir: ${work_dir}/${log_loc}
+checkpoint_dirpath: ${log_dir}/${log_name} # ${work_dir}/checkpoint/${log_name}
+seed: 10
+test_ckpt_version: 0
 
 # csbm
-#novel_cls: 2
-#alpha: 0.05
-#data_dir: "/home/hhchung/data/nncd/csbm/0.0_0.05"
-#dataset_name: "StochasticBlockModelBlobDataset"
+novel_cls: 2
+csbm_config: 0.3_0.05
+data_dir: /home/hhchung/data/nncd/csbm/${csbm_config}
+dataset_name: CSBM
+dataset_subdir: null
+feat_dim: 2
 
 ## pu(oracle)-mlp
-#log_name: csbm_0.3_${alpha}_pu_oracle_${model_type}_${learning_rate}_${seed}
-#feat_dim: 2
+#log_name: ${dataset_name}_${csbm_config}_${method}_${model_type}_${learning_rate}_${seed}
+#method: pu_oracle
+#mode: domain_disc
 #model_type: mlp
 #arch_param:
 #  mlp_dim_list:
@@ -28,16 +34,17 @@ log_dir: ${work_dir}/${log_loc}
 #  mlp_dr_list:
 #    - 0.5
 #oracle: True
-#constrained_penalty: 1e-2
+#constrained_penalty: 0
 #learning_rate: 0.001
 #weight_decay: 0.
 #max_epochs: 2000
-#seed: 10
 
 
 ## pu-mlp
-#log_name: csbm_0.0_${alpha}_pu_${model_type}_${learning_rate}_${seed}
-#feat_dim: 2
+#log_name: ${dataset_name}_${csbm_config}_${method}_${model_type}_${learning_rate}_${seed}
+#log_subdir: null
+#method: pu
+#mode: domain_disc
 #model_type: mlp
 #arch_param:
 #  mlp_dim_list:
@@ -49,14 +56,14 @@ log_dir: ${work_dir}/${log_loc}
 #oracle: False
 #constrained_penalty: 1e-2
 #learning_rate: 0.001
-#weight_decay: 1e-2
+#weight_decay: 0
 #max_epochs: 2000
-#seed: 10
 
 
 ## pu(oracle)-gcn
-#log_name: csbm_0.3_${alpha}_pu_oracle__${model_type}_${learning_rate}_${seed}
-#feat_dim: 2
+#log_name: ${dataset_name}_${csbm_config}_${method}_${model_type}_${learning_rate}_${seed}
+#method: pu_oracle
+#mode: domain_disc
 #model_type: gcn
 #arch_param:
 #  gnn_dim_list:
@@ -72,15 +79,16 @@ log_dir: ${work_dir}/${log_loc}
 #  mlp_dr_list:
 #    - 0.5
 #oracle: True
-#constrained_penalty: 1e-2
+#constrained_penalty: 0
 #learning_rate: 0.001
-#weight_decay: 0.
+#weight_decay: 0
 #max_epochs: 2000
-#seed: 30
 
 ## pu-gcn
-#log_name: csbm_0.0_${alpha}_pu_${model_type}_${learning_rate}_${seed}
-#feat_dim: 2
+#log_name: ${dataset_name}_${csbm_config}_${method}_${model_type}_${learning_rate}_${seed}
+#log_subdir: null
+#method: pu
+#mode: domain_disc
 #model_type: gcn
 #arch_param:
 #  gnn_dim_list:
@@ -98,16 +106,72 @@ log_dir: ${work_dir}/${log_loc}
 #oracle: False
 #constrained_penalty: 1e-2
 #learning_rate: 0.001
-#weight_decay: 1e-2
+#weight_decay: 0
 #max_epochs: 2000
-#seed: 10
+
+# multiple-recalls
+# mlp
+#log_name: ${dataset_name}_${csbm_config}_${method}_${mode}_${model_type}_${learning_rate}_${dual_learning_rate}_${seed}/${log_subdir}
+#log_subdir: ${target_recalls}
+#method: multiple_recalls
+#model_type: mlp
+#arch_param:
+#  mlp_dim_list:
+#    - 2
+#    - 64
+#    - 2
+#  mlp_dr_list:
+#    - 0.5
+#mode: constrained_opt
+#target_recalls:
+#  - 0.1
+#learning_rate: 0.001
+#dual_learning_rate: 0.001
+#max_epochs: 2000
+#device: cuda
+#model_selection_args:
+#  criteria: conoc
+#  beta: 0.05
+
+# multiple-recalls
+# gcn
+log_name: ${dataset_name}_${csbm_config}_${method}_${mode}_${model_type}_${learning_rate}_${dual_learning_rate}_${seed}/${log_subdir}
+log_subdir: ${target_recalls}
+method: multiple_recalls
+model_type: gcn
+arch_param:
+  gnn_dim_list:
+    - 2
+    - 64
+    - 64
+  mlp_dim_list:
+    - 64
+    - 64
+    - 2
+  gnn_dr_list:
+    - 0.5
+  mlp_dr_list:
+    - 0.5
+mode: constrained_opt
+target_recalls:
+  - 0.1
+learning_rate: 0.001 # shift
+dual_learning_rate: 0.001
+constrained_penalty: 1e-2
+max_epochs: 2000
+lagrange_multiplier_init: 1.
+model_selection_args:
+  criteria: conoc
+  beta: 0.1 # 0.01 for no shift
+
+
 
 
 # cora
 #novel_cls: 6
 #data_dir: "/home/hhchung/data/nncd/"
 #dataset_name: "Cora"
-#dataset_subdir: "shift"
+#dataset_subdir: "no_shift"
 #feat_dim: 1433
 
 #method: "pu_oracle"
@@ -125,12 +189,13 @@ log_dir: ${work_dir}/${log_loc}
 #learning_rate: 0.001
 #weight_decay: 0.
 #max_epochs: 2000
-#seed: 10
 
-
+# pu-mlp
 #method: pu
 #model_type: mlp
+#mode: domain_disc
 #log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#log_subdir: null
 #arch_param:
 #  mlp_dim_list:
 #    - ${feat_dim}
@@ -141,9 +206,8 @@ log_dir: ${work_dir}/${log_loc}
 #oracle: False
 #constrained_penalty: 1e-2
 #learning_rate: 0.001
-#weight_decay: 1e-2
+#weight_decay: 0.
 #max_epochs: 2000
-#seed: 10
 
 #method: "pu_oracle"
 #model_type: gcn
@@ -166,11 +230,12 @@ log_dir: ${work_dir}/${log_loc}
 #learning_rate: 0.001
 #weight_decay: 0.
 #max_epochs: 2000
-#seed: 30
 
 #method: pu
+#mode: domain_disc
 #model_type: gcn
 #log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#log_subdir: null
 #arch_param:
 #  gnn_dim_list:
 #    - ${feat_dim}
@@ -187,17 +252,102 @@ log_dir: ${work_dir}/${log_loc}
 #oracle: False
 #constrained_penalty: 1e-2
 #learning_rate: 0.001
-#weight_decay: 1e-2
+#weight_decay: 0.
 #max_epochs: 2000
-#seed: 10
+
+# conoc mlp
+#method: multiple_recalls
+#model_type: mlp
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${dual_learning_rate}_${seed}/${log_subdir}
+#log_subdir: ${target_recalls}
+#arch_param:
+#  mlp_dim_list:
+#    - ${feat_dim}
+#    - 128
+#    - 2
+#  mlp_dr_list:
+#    - 0.5
+#mode: constrained_opt
+#target_recalls:
+#  - 0.1
+#learning_rate: 0.005
+#dual_learning_rate: 0.005
+#max_epochs: 2000
+#device: cuda
+#model_selection_args:
+#  criteria: conoc
+#  beta: 0.1
+
+# conoc gcn
+#method: multiple_recalls
+#model_type: gcn
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${dual_learning_rate}_${seed}/${log_subdir}
+#log_subdir: ${target_recalls}
+#arch_param:
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 16
+#    - 16
+#  mlp_dim_list:
+#    - 16
+#    - 8
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#mode: constrained_opt
+#target_recalls:
+#  - 0.1
+#learning_rate: 0.001
+#dual_learning_rate: 0.001
+#max_epochs: 1000
+#device: cuda
+#model_selection_args:
+#  criteria: conoc
+#  beta: 0.1
+
+
+# conoc src smooth gcn
+#
+
+
+#method: multiple_recalls
+#model_type: pugnn
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${dual_learning_rate}_${seed}/${log_subdir}
+#log_subdir: ${target_recalls}
+#arch_param:
+#  conv_type: gcn
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 4
+#    - 4
+#  mlp_dim_list:
+#    - 4
+#    - 8
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#mode: constrained_opt
+#target_recalls:
+#  - 0.1
+#learning_rate: 0.001
+#dual_learning_rate: 0.001
+#max_epochs: 1000
+#model_selection_args:
+#  criteria: conoc
+#  beta: 0.1
+
 
 
 # citeseer
-novel_cls: 0
-data_dir: "/home/hhchung/data/nncd/"
-dataset_name: "CiteSeer"
-dataset_subdir: "shift"
-feat_dim: 3703
+#novel_cls: 0
+#data_dir: "/home/hhchung/data/nncd/"
+#dataset_name: "CiteSeer"
+#dataset_subdir: "shift"
+#feat_dim: 3703
 
 #method: pu
 #model_type: mlp
@@ -214,25 +364,23 @@ feat_dim: 3703
 #learning_rate: 0.001
 #weight_decay: 0.
 #max_epochs: 2000
-#seed: 30
 
 
-method: pu_oracle
-model_type: mlp
-log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
-arch_param:
-  mlp_dim_list:
-    - ${feat_dim}
-    - 128
-    - 2
-  mlp_dr_list:
-    - 0.5
-oracle: True
-constrained_penalty: 0.
-learning_rate: 0.001
-weight_decay: 0.
-max_epochs: 2000
-seed: 30
+#method: pu_oracle
+#model_type: mlp
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#arch_param:
+#  mlp_dim_list:
+#    - ${feat_dim}
+#    - 128
+#    - 2
+#  mlp_dr_list:
+#    - 0.5
+#oracle: True
+#constrained_penalty: 0.
+#learning_rate: 0.001
+#weight_decay: 0.
+#max_epochs: 2000
 
 
 #method: pu
@@ -256,7 +404,6 @@ seed: 30
 #learning_rate: 0.001
 #weight_decay: 0.
 #max_epochs: 2000
-#seed: 10
 
 
 #method: pu_oracle
@@ -280,4 +427,32 @@ seed: 30
 #learning_rate: 0.001
 #weight_decay: 0.
 #max_epochs: 2000
-#seed: 30
+
+# conoc gcn
+#method: multiple_recalls
+#model_type: gcn
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${dual_learning_rate}_${seed}/${log_subdir}
+#log_subdir: ${target_recalls}
+#arch_param:
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 64
+#    - 16
+#  mlp_dim_list:
+#    - 16
+#    - 8
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#mode: constrained_opt
+#target_recalls:
+#  - 0.1
+#learning_rate: 0.001
+#dual_learning_rate: 0.001
+#max_epochs: 1000
+#device: cuda
+#model_selection_args:
+#  criteria: conoc
+#  beta: 0.1

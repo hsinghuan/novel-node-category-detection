@@ -1,6 +1,7 @@
 _target_: src.detector.pu.VanillaPU
 
 model_type: ${model_type}
+arch_param: ${arch_param}
 dataset_name: ${dataset_name}
 novel_cls: ${novel_cls}
 learning_rate: ${learning_rate}

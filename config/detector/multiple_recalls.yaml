@@ -6,13 +6,11 @@ arch_param: ${arch_param}
 dataset_name: ${dataset_name}
 novel_cls: ${novel_cls}
 target_recalls: ${target_recalls}
-logit_multiplier: ${logit_multiplier}
-constrained_penalty: ${constrained_penalty}
 learning_rate: ${learning_rate}
 dual_learning_rate: ${dual_learning_rate}
-weight_decay: ${weight_decay}
+constrained_penalty: ${constrained_penalty}
 max_epochs: ${max_epochs}
-warmup_epochs: ${warmup_epochs}
 seed: ${seed}
-device: ${device}
-penalty_type: ${penalty_type}
+#device: ${device}
+#src_src_smooth: ${src_src_smooth}
+lagrange_multiplier_init: ${lagrange_multiplier_init}
