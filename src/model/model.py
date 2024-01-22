@@ -10,8 +10,8 @@ class Model(nn.Module):
         self.encoder.reset_parameters()
         self.classifier.reset_parameters()
 
-    def forward(self, x, edge_index):
-        return self.classifier(self.encoder(x, edge_index))
+    def forward(self, x, edge_index, edge_weight=None):
+        return self.classifier(self.encoder(x, edge_index, edge_weight))
 
     def get_encoder_classifier(self):
         return self.encoder, self.classifier

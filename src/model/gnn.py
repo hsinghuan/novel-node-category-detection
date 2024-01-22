@@ -1,6 +1,10 @@
+from copy import deepcopy
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv, SAGEConv, GATConv
+
+
 
 class GCN(nn.Module):
     def __init__(self, dim_list, dropout_list=None):
