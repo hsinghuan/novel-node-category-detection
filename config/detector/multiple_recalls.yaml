@@ -12,3 +12,5 @@ constrained_penalty: ${constrained_penalty}
 max_epochs: ${max_epochs}
 seed: ${seed}
 lagrange_multiplier_init: ${lagrange_multiplier_init}
+link_predict: ${link_predict}
+aux_loss_weight: ${aux_loss_weight}
