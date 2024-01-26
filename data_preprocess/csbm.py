@@ -129,7 +129,7 @@ class CSBM(InMemoryDataset):
         torch.save(self.collate([data]), self.processed_paths[0])
 
 def create(args):
-    root_dir = os.path.join(args.root_dir, "csbm", str(args.shift) + "_" + str(args.alpha))
+    root_dir = os.path.join(args.root_dir, "csbm3", str(args.shift) + "_" + str(args.alpha))
 
     os.makedirs(root_dir)
 
@@ -144,7 +144,7 @@ def create(args):
     block_sizes[2] = num_tgt_base * args.alpha // (1 - args.alpha)
     block_sizes = block_sizes.astype(int)
 
-    edge_probs = np.array([[0.012, 0.006, 0.006],
+    edge_probs = np.array([[0.012, 0.006, 0.006], # 0.012, 0.06
                            [0.006, 0.012, 0.006],
                            [0.006, 0.006, 0.012]])
     feat_dim = 2

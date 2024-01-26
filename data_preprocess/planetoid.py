@@ -103,12 +103,14 @@ if __name__ == "__main__":
 
     elif args.dataset == "CiteSeer":
         cls_num = 6
-        novel_cls = 0
+        novel_cls = 5 # 0
 
         preprocess_name = "no_shift"
-        src_ratio_per_cls = np.array([0., 0.5, 0.5, 0.5, 0.5, 0.5])
+        # src_ratio_per_cls = np.array([0., 0.5, 0.5, 0.5, 0.5, 0.5])
+        src_ratio_per_cls = np.array([0.5, 0.5, 0.5, 0.5, 0.5, 0.])
         preprocess(args.dataset, preprocess_name, cls_num, novel_cls, src_ratio_per_cls, args)
 
         preprocess_name = "shift"
-        src_ratio_per_cls = np.array([0., 0.1, 0.9, 0.1, 0.9, 0.5])
+        # src_ratio_per_cls = np.array([0., 0.1, 0.9, 0.1, 0.9, 0.5])
+        src_ratio_per_cls = np.array([0.8, 0.2, 0.8, 0.2, 0.5, 0.])
         preprocess(args.dataset, preprocess_name, cls_num, novel_cls, src_ratio_per_cls, args)
