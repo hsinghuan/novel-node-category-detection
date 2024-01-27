@@ -14,50 +14,14 @@ seed: 10
 test_ckpt_version: 0
 
 # csbm
-#novel_cls: 2
-#csbm_config: 0.3_0.05
-#data_dir: /home/hhchung/data/nncd/csbm/${csbm_config}
-#dataset_name: CSBM
-#dataset_subdir: null
-#feat_dim: 2
-
-## pu(oracle)-mlp
-#log_name: ${dataset_name}_${csbm_config}_${method}_${model_type}_${learning_rate}_${seed}
-#method: pu_oracle
-#mode: domain_disc
-#model_type: mlp
-#arch_param:
-#  mlp_dim_list:
-#    - 2
-#    - 64
-#    - 2
-#  mlp_dr_list:
-#    - 0.5
-#oracle: True
-#constrained_penalty: 0
-#learning_rate: 0.001
-#weight_decay: 0.
-#max_epochs: 2000
+novel_cls: 2
+csbm_config: 0.0_0.05
+data_dir: /home/hhchung/data/nncd/csbm/${csbm_config}
+dataset_name: CSBM
+dataset_subdir: null
+feat_dim: 2
 
 
-## pu-mlp
-#log_name: ${dataset_name}_${csbm_config}_${method}_${model_type}_${learning_rate}_${seed}
-#log_subdir: null
-#method: pu
-#mode: domain_disc
-#model_type: mlp
-#arch_param:
-#  mlp_dim_list:
-#    - 2
-#    - 64
-#    - 2
-#  mlp_dr_list:
-#    - 0.5
-#oracle: False
-#constrained_penalty: 1e-2
-#learning_rate: 0.001
-#weight_decay: 0
-#max_epochs: 2000
 
 
 ## pu(oracle)-gcn
@@ -109,62 +73,39 @@ test_ckpt_version: 0
 #weight_decay: 0
 #max_epochs: 2000
 
-# multiple-recalls
-# mlp
-#log_name: ${dataset_name}_${csbm_config}_${method}_${mode}_${model_type}_${learning_rate}_${dual_learning_rate}_${seed}/${log_subdir}
-#log_subdir: ${target_recalls}
-#method: multiple_recalls
-#model_type: mlp
-#arch_param:
-#  mlp_dim_list:
-#    - 2
-#    - 64
-#    - 2
-#  mlp_dr_list:
-#    - 0.5
-#mode: constrained_opt
-#target_recalls:
-#  - 0.1
-#learning_rate: 0.001
-#dual_learning_rate: 0.001
-#max_epochs: 2000
-#device: cuda
-#model_selection_args:
-#  criteria: conoc
-#  beta: 0.05
 
 # multiple-recalls
 # gcn
-#log_name: ${dataset_name}_${csbm_config}_${method}_${mode}_${model_type}_${learning_rate}_${dual_learning_rate}_${seed}/${log_subdir}
-#log_subdir: ${target_recalls}
-#method: multiple_recalls
-#model_type: gcn
-#arch_param:
-#  gnn_dim_list:
-#    - 2
-#    - 64
-#    - 64
-#  mlp_dim_list:
-#    - 64
-#    - 64
-#    - 2
-#  gnn_dr_list:
-#    - 0.5
-#  mlp_dr_list:
-#    - 0.5
-#mode: constrained_opt
-#target_recalls:
-#  - 0.1
-#learning_rate: 0.001
-#dual_learning_rate: 0.001
-#constrained_penalty: 1e-2
-#max_epochs: 2000
-#lagrange_multiplier_init: 1.
-#link_predict: null
-#aux_loss_weight: 0.
-#model_selection_args:
-#  criteria: conoc
-#  beta: 0.1 # 0.01 for no shift, 0.1 for shift (1)
+log_name: ${dataset_name}_${csbm_config}_${method}_${mode}_${model_type}_${learning_rate}_${dual_learning_rate}_${seed}/${log_subdir}
+log_subdir: ${target_recalls}
+method: multiple_recalls
+model_type: gcn
+arch_param:
+  gnn_dim_list:
+    - 2
+    - 64
+    - 64
+  mlp_dim_list:
+    - 64
+    - 64
+    - 2
+  gnn_dr_list:
+    - 0.5
+  mlp_dr_list:
+    - 0.5
+mode: constrained_opt
+target_recalls:
+  - 0.1
+learning_rate: 0.001
+dual_learning_rate: 0.001
+constrained_penalty: 1e-2
+max_epochs: 2000
+lagrange_multiplier_init: 1.
+link_predict: null
+aux_loss_weight: 0.
+model_selection_args:
+  criteria: conoc
+  beta: 0.1 # 0.01 for no shift, 0.1 for shift (1)
 
 
 # conoc
@@ -195,9 +136,44 @@ test_ckpt_version: 0
 #max_epochs: 2000
 #lagrange_multiplier_init: 1. # 1.5
 #link_predict: gae
+#aux_loss_weight: 1e-2
 #model_selection_args:
 #  criteria: conoc
 #  beta: 0.01 # 0.01 for no shift, 0.05 for shift
+
+
+# conoc
+# gcn-gae-tgt
+#log_name: ${dataset_name}_${csbm_config}_${method}_${mode}_${model_type}_${learning_rate}_${dual_learning_rate}_${seed}/${log_subdir}
+#log_subdir: ${target_recalls}
+#method: conoc_linkpred_tgt
+#model_type: gcn_gae
+#arch_param:
+#  gnn_dim_list:
+#    - 2
+#    - 64
+#    - 64
+#  mlp_dim_list:
+#    - 64
+#    - 64
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#mode: constrained_opt
+#target_recalls:
+#  - 0.1
+#learning_rate: 0.001
+#dual_learning_rate: 0.001
+#constrained_penalty: 1e-2
+#max_epochs: 2000
+#lagrange_multiplier_init: 1. # 1.5
+#link_predict: gae_tgt
+#aux_loss_weight: 1e-2
+#model_selection_args:
+#  criteria: conoc
+#  beta: 0.05 # 0.01 for no shift, 0.05 for shift
 
 
 
@@ -377,15 +353,45 @@ test_ckpt_version: 0
 #  criteria: conoc
 #  beta: 0.05
 
-
+# conoc gcn-gae-tgt
+#method: conoc_linkpred_tgt
+#model_type: gcn_gae
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${dual_learning_rate}_${seed}/${log_subdir}
+#log_subdir: ${target_recalls}
+#arch_param:
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 16
+#    - 16
+#  mlp_dim_list:
+#    - 16
+#    - 8
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#mode: constrained_opt
+#target_recalls:
+#  - 0.1
+#learning_rate: 0.001
+#dual_learning_rate: 0.001
+#constrained_penalty: 0.
+#max_epochs: 1000
+#lagrange_multiplier_init: 0.1
+#link_predict: gae_tgt
+#aux_loss_weight: 1e-2
+#model_selection_args:
+#  criteria: conoc
+#  beta: 0.05
 
 
 # citeseer
-novel_cls: 0
-data_dir: "/home/hhchung/data/nncd/"
-dataset_name: "CiteSeer"
-dataset_subdir: "shift"
-feat_dim: 3703
+#novel_cls: 0
+#data_dir: "/home/hhchung/data/nncd/"
+#dataset_name: "CiteSeer"
+#dataset_subdir: "shift"
+#feat_dim: 3703
 
 #method: pu
 #model_type: mlp
@@ -502,33 +508,33 @@ feat_dim: 3703
 
 
 # conoc gcn-gae
-method: multiple_recalls
-model_type: gcn_gae
-log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${dual_learning_rate}_${seed}/${log_subdir}
-log_subdir: ${target_recalls}
-arch_param:
-  gnn_dim_list:
-    - ${feat_dim}
-    - 64
-    - 16
-  mlp_dim_list:
-    - 16
-    - 8
-    - 2
-  gnn_dr_list:
-    - 0.5
-  mlp_dr_list:
-    - 0.5
-mode: constrained_opt
-target_recalls:
-  - 0.1
-learning_rate: 0.001
-dual_learning_rate: 0.001
-constrained_penalty: 0.
-max_epochs: 1000
-lagrange_multiplier_init: 0.1
-link_predict: gae
-aux_loss_weight: 1e-2
-model_selection_args:
-  criteria: conoc
-  beta: 0.05
+#method: multiple_recalls
+#model_type: gcn_gae
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${dual_learning_rate}_${seed}/${log_subdir}
+#log_subdir: ${target_recalls}
+#arch_param:
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 64
+#    - 16
+#  mlp_dim_list:
+#    - 16
+#    - 8
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#mode: constrained_opt
+#target_recalls:
+#  - 0.1
+#learning_rate: 0.001
+#dual_learning_rate: 0.001
+#constrained_penalty: 0.
+#max_epochs: 1000
+#lagrange_multiplier_init: 0.1
+#link_predict: gae
+#aux_loss_weight: 1e-2
+#model_selection_args:
+#  criteria: conoc
+#  beta: 0.05

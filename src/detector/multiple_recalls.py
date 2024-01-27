@@ -1,16 +1,13 @@
-from typing import Optional, Callable
 import numpy as np
 from sklearn.metrics import roc_auc_score
 import lightning as L
-from lightning.pytorch.core.optimizer import LightningOptimizer
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch_geometric.utils import subgraph
 import cooper
 
 from src.utils.core_utils import recall_from_logits, fpr_from_logits
 from src.utils.model_utils import get_model_optimizer
-from torchviz import make_dot
 
 class RecallConstrainedNodeClassification(cooper.ConstrainedMinimizationProblem):
     def __init__(self, target_recall, wd, penalty_type, logit_multiplier, mode="domain_disc"):
@@ -162,6 +159,12 @@ class CoNoC(L.LightningModule):
             assert "gae" in self.model_type
             z = self.model.encoder.encode(data.x, data.edge_index)
             aux_loss = self.model.encoder.recon_loss(z, data.edge_index)
+        elif self.link_predict == "gae_tgt":
+            assert "gae" in self.model_type
+            # x = data.x[data.tgt_mask]
+            tgt_edge_index, _ = subgraph(data.tgt_mask, data.edge_index)
+            z = self.model.encoder.encode(data.x, data.edge_index)
+            aux_loss = self.model.encoder.recon_loss(z, tgt_edge_index)
         else:
             aux_loss = 0.
 
