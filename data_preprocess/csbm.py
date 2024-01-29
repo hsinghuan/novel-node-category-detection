@@ -129,7 +129,7 @@ class CSBM(InMemoryDataset):
         torch.save(self.collate([data]), self.processed_paths[0])
 
 def create(args):
-    root_dir = os.path.join(args.root_dir, "csbm3", str(args.shift) + "_" + str(args.alpha))
+    root_dir = os.path.join(args.root_dir, "csbm", str(args.shift) + "_" + str(args.alpha))
 
     os.makedirs(root_dir)
 
