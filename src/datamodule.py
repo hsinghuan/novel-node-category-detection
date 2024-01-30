@@ -16,6 +16,7 @@ class DataModule(L.LightningDataModule):
                  novel_cls: int,
                  alpha: float = None,
                  dataset_subdir: str = None,
+                 # link_predict: str = None,
                  ):
         super().__init__()
         self.data_dir = data_dir
@@ -23,6 +24,7 @@ class DataModule(L.LightningDataModule):
         self.novel_cls = novel_cls
         self.alpha = alpha
         self.dataset_subdir = dataset_subdir
+        # self.link_predict = link_predict
 
     def setup(self, stage):
         if self.dataset_subdir:
@@ -37,13 +39,27 @@ class DataModule(L.LightningDataModule):
         else:
             self.data = loaded
 
+        # if self.link_predict:
+        #     from torch_geometric.transforms import RandomLinkSplit
+        #     transform = RandomLinkSplit(num_val=0.2, num_test=0.05, split_labels=True, add_negative_train_samples=False, is_undirected=True)
+        #     self.lp_train_data, self.lp_val_data, self.lp_test_data = transform(self.data)
+
     def train_dataloader(self):
+        # if self.link_predict:
+        #     return DataLoader([(self.data, self.lp_train_data)], batch_size=1)
+        # else:
         return DataLoader([self.data], batch_size=1)
 
     def val_dataloader(self):
+        # if self.link_predict:
+        #     return DataLoader([(self.data, self.lp_val_data)], batch_size=1)
+        # else:
         return DataLoader([self.data], batch_size=1)
 
     def test_dataloader(self):
+        # if self.link_predict:
+        #     return DataLoader([(self.data, self.lp_test_data)], batch_size=1)
+        # else:
         return DataLoader([self.data], batch_size=1)
 
     def predict_dataloader(self):

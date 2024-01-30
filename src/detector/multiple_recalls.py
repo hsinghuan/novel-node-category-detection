@@ -4,6 +4,7 @@ import lightning as L
 import torch
 import torch.nn.functional as F
 from torch_geometric.utils import subgraph
+from torch_geometric.utils.map import map_index
 import cooper
 
 from src.utils.core_utils import recall_from_logits, fpr_from_logits
@@ -158,20 +159,26 @@ class CoNoC(L.LightningModule):
         if self.link_predict == "gae":
             assert "gae" in self.model_type
             z = self.model.encoder.encode(data.x, data.edge_index)
-            aux_loss = self.model.encoder.recon_loss(z, data.edge_index)
+            aux_loss = self.model.encoder.recon_loss(z, data.edge_index) # pos_edge_label_index)
         elif self.link_predict == "gae_tgt":
             assert "gae" in self.model_type
-            # x = data.x[data.tgt_mask]
-            tgt_edge_index, _ = subgraph(data.tgt_mask, data.edge_index)
             z = self.model.encoder.encode(data.x, data.edge_index)
-            aux_loss = self.model.encoder.recon_loss(z, tgt_edge_index)
+            tgt_edge_index, _ = subgraph(data.tgt_mask, data.edge_index)
+            # relabel nodes
+            num_nodes = data.tgt_mask.size(0)
+            node_mask = data.tgt_mask
+            subset = node_mask.nonzero().view(-1)
+            relabeled_tgt_edge_index, _ = map_index(tgt_edge_index, subset, max_index=num_nodes, inclusive=True)
+            relabeled_tgt_edge_index = relabeled_tgt_edge_index.view(2, -1)
+            aux_loss = self.model.encoder.recon_loss(z[data.tgt_mask], relabeled_tgt_edge_index)
         else:
             aux_loss = 0.
 
         return aux_loss * self.aux_loss_weight
 
-    def process_batch(self, batch, stage):
+    def process_batch(self, batch, stage): # , batch_linkpred=None):
         y = batch.tgt_mask.type(torch.int64)
+
         if stage == "train":
             mask = batch.train_mask
 
@@ -198,7 +205,7 @@ class CoNoC(L.LightningModule):
                        torch.tensor([0.] * len(self.target_recalls))
             else:
                 logits = self.forward(batch)
-                aux_loss = self.aux_loss(batch)
+                aux_loss = self.aux_loss(batch) # _linkpred)
                 lagrangian = self.formulation.composite_objective(self.cmp.closure, self.model, logits[mask], y[mask], aux_loss=aux_loss)
                 primal_optimizer = self.optimizers()
                 primal_optimizer.zero_grad(); primal_optimizer.step() # dummy call to make lightning module do checkpointing, won't update the weights
@@ -222,7 +229,7 @@ class CoNoC(L.LightningModule):
             elif stage == "test":
                 mask = batch.test_mask
             logits = self.forward(batch)
-            aux_loss = self.aux_loss(batch)
+            aux_loss = self.aux_loss(batch) # _linkpred)
             probs = F.softmax(logits, dim=-1)
             probs = probs.reshape(probs.shape[0], -1, 2)
 
@@ -241,7 +248,12 @@ class CoNoC(L.LightningModule):
                    probs
 
     def training_step(self, batch, batch_idx):
-        objective, penalty, aux_loss, ineq_defect, proxy_ineq_defect, lagrangian_value, fpr_proxy, fpr, recall_proxy, recall = self.process_batch(batch, "train")
+        # if self.link_predict:
+        #     batch_linkpred = batch[1]
+        #     batch = batch[0]
+        # else:
+        #     batch_linkpred = None
+        objective, penalty, aux_loss, ineq_defect, proxy_ineq_defect, lagrangian_value, fpr_proxy, fpr, recall_proxy, recall = self.process_batch(batch, "train") # , batch_linkpred)
         batch_size = batch.train_mask.sum().item()
 
         self.log("train/constraint_penalty", penalty, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
@@ -267,10 +279,15 @@ class CoNoC(L.LightningModule):
 
 
     def validation_step(self, batch, batch_idx):
-        objective, penalty, aux_loss, ineq_defect, proxy_ineq_defect, lagrangian_value, fpr_proxy, fpr, recall_proxy, recall, probs = self.process_batch(batch, "val")
+        # if self.link_predict:
+        #     batch_linkpred = batch[1]
+        #     batch = batch[0]
+        # else:
+        #     batch_linkpred = None
+        objective, penalty, aux_loss, ineq_defect, proxy_ineq_defect, lagrangian_value, fpr_proxy, fpr, recall_proxy, recall, probs = self.process_batch(batch, "val") # , batch_linkpred)
         batch_size = batch.val_mask.sum().item()
         self.log("val/constraint_penalty", penalty, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
-        self.log("train/aux_loss", aux_loss, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+        self.log("val/aux_loss", aux_loss, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
         self.log("val/loss", lagrangian_value, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
         for i in range(len(self.target_recalls)):
             self.log("val/fpr_proxy_" + str(self.target_recalls[i]), fpr_proxy[i], on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
@@ -296,7 +313,12 @@ class CoNoC(L.LightningModule):
         return outputs
 
     def test_step(self, batch, batch_idx):
-        objective, penalty, aux_loss, ineq_defect, proxy_ineq_defect, lagrangian_value, fpr_proxy, fpr, recall_proxy, recall, probs = self.process_batch(batch, "test")
+        # if self.link_predict:
+        #     batch_linkpred = batch[1]
+        #     batch = batch[0]
+        # else:
+        #     batch_linkpred = None
+        objective, penalty, aux_loss, ineq_defect, proxy_ineq_defect, lagrangian_value, fpr_proxy, fpr, recall_proxy, recall, probs = self.process_batch(batch, "test") # , batch_linkpred)
         batch_size = batch.test_mask.sum().item()
         self.log("test/constraint_penalty", penalty, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
         self.log("test/aux_loss", aux_loss, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)

@@ -4,3 +4,4 @@ dataset_name: ${dataset_name}
 novel_cls: ${novel_cls}
 #alpha: ${alpha}
 dataset_subdir: ${dataset_subdir}
+#link_predict: ${link_predict}
