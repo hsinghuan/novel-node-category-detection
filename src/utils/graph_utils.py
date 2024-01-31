@@ -25,12 +25,17 @@ def subgraph_negative_sampling(edge_index, subgraph_mask, num_nodes=None, num_ne
     idx = (edge_index[0] * num_nodes + edge_index[1]).to("cpu")
 
     # rng = range(num_nodes**2) # change to sample from subgraph node <-> subgraph node
-    full_subgraph_edge_index = torch.zeros((2, num_subgraph_nodes ** 2), dtype=torch.int)
-    for i in range(num_subgraph_nodes):
-        for j in range(num_subgraph_nodes):
-            full_subgraph_edge_index[0][i * num_subgraph_nodes + j] = subgraph_node_idx[i]
-            full_subgraph_edge_index[1][i * num_subgraph_nodes + j] = subgraph_node_idx[j]
-    rng = (full_subgraph_edge_index[0] * num_nodes + full_subgraph_edge_index[1]).tolist()
+    # full_subgraph_edge_index = torch.zeros((2, num_subgraph_nodes ** 2), dtype=torch.int)
+    # for i in range(num_subgraph_nodes):
+    #     for j in range(num_subgraph_nodes):
+    #         full_subgraph_edge_index[0][i * num_subgraph_nodes + j] = subgraph_node_idx[i]
+    #         full_subgraph_edge_index[1][i * num_subgraph_nodes + j] = subgraph_node_idx[j]
+    # rng = (full_subgraph_edge_index[0] * num_nodes + full_subgraph_edge_index[1]).tolist()
+    # rng = []
+    # for i in range(num_subgraph_nodes):
+    #     for j in range(num_subgraph_nodes):
+    #         rng.append(subgraph_node_idx[i] * num_nodes + subgraph_node_idx[j])
+    rng = (subgraph_node_idx.reshape(-1, 1) * num_nodes + subgraph_node_idx).view(-1).tolist() # only consider edges made by subgraph nodes
 
     perm = torch.tensor(random.sample(rng, num_neg_samples))
     mask = torch.from_numpy(np.isin(perm, idx).astype(np.uint8)) # whether random sampled edge is in positive
