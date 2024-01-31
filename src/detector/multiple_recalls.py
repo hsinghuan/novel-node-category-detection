@@ -3,12 +3,13 @@ from sklearn.metrics import roc_auc_score
 import lightning as L
 import torch
 import torch.nn.functional as F
-from torch_geometric.utils import subgraph
+from torch_geometric.utils import subgraph, negative_sampling
 from torch_geometric.utils.map import map_index
 import cooper
 
 from src.utils.core_utils import recall_from_logits, fpr_from_logits
 from src.utils.model_utils import get_model_optimizer
+from src.utils.graph_utils import subgraph_negative_sampling
 
 class RecallConstrainedNodeClassification(cooper.ConstrainedMinimizationProblem):
     def __init__(self, target_recall, wd, penalty_type, logit_multiplier, mode="domain_disc"):
@@ -159,7 +160,7 @@ class CoNoC(L.LightningModule):
         if self.link_predict == "gae":
             assert "gae" in self.model_type
             z = self.model.encoder.encode(data.x, data.edge_index)
-            aux_loss = self.model.encoder.recon_loss(z, data.edge_index) # pos_edge_label_index)
+            aux_loss = self.model.encoder.recon_loss(z, data.edge_index)
         elif self.link_predict == "gae_tgt":
             assert "gae" in self.model_type
             z = self.model.encoder.encode(data.x, data.edge_index)
@@ -171,6 +172,13 @@ class CoNoC(L.LightningModule):
             relabeled_tgt_edge_index, _ = map_index(tgt_edge_index, subset, max_index=num_nodes, inclusive=True)
             relabeled_tgt_edge_index = relabeled_tgt_edge_index.view(2, -1)
             aux_loss = self.model.encoder.recon_loss(z[data.tgt_mask], relabeled_tgt_edge_index)
+        elif self.link_predict == "gae_tgt_neg":
+            # positive samples are from full graph
+            # negative samples are only from target graph
+            assert "gae" in self.model_type
+            z = self.model.encoder.encode(data.x, data.edge_index)
+            neg_edge_index = subgraph_negative_sampling(data.edge_index, data.tgt_mask, num_neg_samples=data.edge_index.size(1) * 3)
+            aux_loss = self.model.encoder.recon_loss(z, data.edge_index, neg_edge_index)
         else:
             aux_loss = 0.
 
