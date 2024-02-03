@@ -1,9 +1,9 @@
 import numpy as np
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, confusion_matrix
 import lightning as L
 import torch
 import torch.nn.functional as F
-from torch_geometric.utils import subgraph, negative_sampling
+from torch_geometric.utils import subgraph, negative_sampling, structured_negative_sampling
 from torch_geometric.utils.map import map_index
 import cooper
 
@@ -156,12 +156,19 @@ class CoNoC(L.LightningModule):
         else:
             return self.model(data.x, data.edge_index)
 
+    def negonly_recon_loss(self, z, neg_edge_index):
+        EPS = 1e-15
+        neg_loss = -torch.log(1 -
+                              self.model.encoder.decoder(z, neg_edge_index, sigmoid=True) +
+                              EPS).mean()
+        return neg_loss
+
     def aux_loss(self, data):
         if self.link_predict == "gae":
             assert "gae" in self.model_type
             z = self.model.encoder.encode(data.x, data.edge_index)
             aux_loss = self.model.encoder.recon_loss(z, data.edge_index)
-        elif self.link_predict == "gae_tgt":
+        elif self.link_predict == "gae_tgt" or self.link_predict == "gae_tgt_negonly" or self.link_predict == "gae_tgt_struct":
             assert "gae" in self.model_type
             z = self.model.encoder.encode(data.x, data.edge_index)
             tgt_edge_index, _ = subgraph(data.tgt_mask, data.edge_index)
@@ -171,13 +178,21 @@ class CoNoC(L.LightningModule):
             subset = node_mask.nonzero().view(-1)
             relabeled_tgt_edge_index, _ = map_index(tgt_edge_index, subset, max_index=num_nodes, inclusive=True)
             relabeled_tgt_edge_index = relabeled_tgt_edge_index.view(2, -1)
-            aux_loss = self.model.encoder.recon_loss(z[data.tgt_mask], relabeled_tgt_edge_index)
+            if self.link_predict == "gae_tgt_struct":
+                relabeled_tgt_neg_edge_index_0, _, relabeled_tgt_neg_edge_index_1 = structured_negative_sampling(relabeled_tgt_edge_index)
+                relabeled_tgt_neg_edge_index = torch.stack([relabeled_tgt_neg_edge_index_0, relabeled_tgt_neg_edge_index_1])
+            else:
+                relabeled_tgt_neg_edge_index = negative_sampling(relabeled_tgt_edge_index)
+            if self.link_predict == "gae_tgt" or self.link_predict == "gae_tgt_struct":
+                aux_loss = self.model.encoder.recon_loss(z[data.tgt_mask], relabeled_tgt_edge_index, relabeled_tgt_neg_edge_index)
+            elif self.link_predict == "gae_tgt_negonly":
+                aux_loss = self.negonly_recon_loss(z[data.tgt_mask], relabeled_tgt_neg_edge_index)
         elif self.link_predict == "gae_tgt_neg":
             # positive samples are from full graph
             # negative samples are only from target graph
             assert "gae" in self.model_type
             z = self.model.encoder.encode(data.x, data.edge_index)
-            neg_edge_index = subgraph_negative_sampling(data.edge_index, data.tgt_mask, num_neg_samples=data.edge_index.size(1) * 3)
+            neg_edge_index = subgraph_negative_sampling(data.edge_index, data.tgt_mask)
             aux_loss = self.model.encoder.recon_loss(z, data.edge_index, neg_edge_index)
         else:
             aux_loss = 0.
@@ -365,7 +380,14 @@ class CoNoC(L.LightningModule):
         batch_size = tgt_val_mask.sum()
         for i in range(len(self.target_recalls)):
             roc_auc = roc_auc_score(y_oracle[tgt_val_mask], probs[:, i, 1][tgt_val_mask])
+            cm = confusion_matrix(y_oracle[tgt_val_mask], np.argmax(probs[:, i][tgt_val_mask], axis=1))
             self.log("val/performance.AU-ROC_" + str(self.target_recalls[i]), roc_auc, on_step=False, on_epoch=True, batch_size=batch_size)
+            self.log("val/performance.TP_" + str(self.target_recalls[i]), cm[1,1], on_step=False, on_epoch=True, batch_size=batch_size)
+            self.log("val/performance.FP_" + str(self.target_recalls[i]), cm[0,1], on_step=False, on_epoch=True, batch_size=batch_size)
+            self.log("val/performance.TN_" + str(self.target_recalls[i]), cm[0,0], on_step=False, on_epoch=True, batch_size=batch_size)
+            self.log("val/performance.FN_" + str(self.target_recalls[i]), cm[1,0], on_step=False, on_epoch=True, batch_size=batch_size)
+
+        self.validation_step_outputs = []
 
     def on_test_epoch_end(self):
         outputs = self.test_step_outputs
@@ -382,6 +404,8 @@ class CoNoC(L.LightningModule):
         for i in range(len(self.target_recalls)):
             tgt_roc_auc = roc_auc_score(y_oracle[tgt_mask], probs[:, i, 1][tgt_mask])
             self.log("tgt/performance.AU-ROC_" + str(self.target_recalls[i]), tgt_roc_auc, on_step=False, on_epoch=True, batch_size=tgt_mask.sum())
+
+        self.test_step_outputs = []
 
     def predict_step(self, batch, batch_idx):
         return self(batch)
