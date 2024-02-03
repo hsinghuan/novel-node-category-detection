@@ -1,4 +1,4 @@
-_target_: src.detector.pu.VanillaPU
+_target_: src.detector.domain_discriminator.DomainDiscriminator
 
 model_type: ${model_type}
 arch_param: ${arch_param}

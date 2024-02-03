@@ -7,7 +7,7 @@ from sklearn.metrics import roc_auc_score, average_precision_score, precision_re
 
 from src.utils.model_utils import get_model_optimizer
 
-class VanillaPU(L.LightningModule):
+class DomainDiscriminator(L.LightningModule):
     def __init__(
             self,
             model_type: str,
@@ -73,34 +73,43 @@ class VanillaPU(L.LightningModule):
         elif stage == "test":
             mask = batch.test_mask
 
-        loss = F.cross_entropy(logits[mask], y[mask])
+        dd_loss = F.cross_entropy(logits[mask], y[mask]) # domain discriminator loss
 
         if self.warm_start:
-            loss += self.get_penalty(self.model, wd=self.constrained_penalty)
+            l2_loss = self.get_penalty(self.model, wd=self.constrained_penalty)
+        else:
+            l2_loss = 0.
+        loss = dd_loss + l2_loss
         if stage == "train":
             optimizer = self.optimizers()
             optimizer.zero_grad()
             self.manual_backward(loss)
             optimizer.step()
-            return loss
+            return loss, dd_loss, l2_loss
 
         elif stage == "val" or stage == "test":
             probs = F.softmax(logits, dim=1)
-            return loss, probs, y, y_oracle, batch.tgt_mask, mask
+            return loss, dd_loss, l2_loss, probs, y, y_oracle, batch.tgt_mask, mask
         else:
             raise ValueError(f"Invalid stage {stage}")
 
     def training_step(self, batch, batch_idx):
-        loss = self.process_batch(batch, "train")
+        loss, dd_loss, l2_loss = self.process_batch(batch, "train")
         batch_size = batch.train_mask.sum().item()
         self.log("train/loss", loss, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+        self.log("train/dd_loss", dd_loss, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+        self.log("train/l2_loss", l2_loss, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
         return {"loss": loss.detach()}
 
     def validation_step(self, batch, batch_idx):
-        loss, probs, y, y_oracle, tgt_mask, val_mask = self.process_batch(batch, "val")
+        loss, dd_loss, l2_loss, probs, y, y_oracle, tgt_mask, val_mask = self.process_batch(batch, "val")
         batch_size = batch.val_mask.sum().item()
         self.log("val/loss", loss, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+        self.log("val/dd_loss", dd_loss, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+        self.log("val/l2_loss", l2_loss, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
         outputs =  {"loss": loss.detach(),
+                    "dd_loss": dd_loss.detach(),
+                    "l2_loss": l2_loss.detach(),
                     "probs": probs,
                     "y": y,
                     "y_oracle": y_oracle,
@@ -110,10 +119,14 @@ class VanillaPU(L.LightningModule):
         return outputs
 
     def test_step(self, batch, batch_idx):
-        loss, probs, y, y_oracle, tgt_mask, test_mask = self.process_batch(batch, "test")
+        loss, dd_loss, l2_loss, probs, y, y_oracle, tgt_mask, test_mask = self.process_batch(batch, "test")
         batch_size = batch.test_mask.sum().item()
         self.log("test/loss", loss, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+        self.log("test/dd_loss", dd_loss, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+        self.log("test/l2_loss", l2_loss, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
         outputs = {"loss": loss.detach(),
+                   "dd_loss": dd_loss.detach(),
+                   "l2_loss": l2_loss.detach(),
                    "probs": probs,
                    "y": y,
                    "y_oracle": y_oracle,
@@ -144,6 +157,8 @@ class VanillaPU(L.LightningModule):
 
         self.log("val/performance.AU-ROC", roc_auc, on_step=False, on_epoch=True)
 
+        self.validation_step_outputs = []
+
     def on_test_epoch_end(self) -> None:
         outputs = self.test_step_outputs
         probs = torch.cat([o["probs"] for o in outputs], dim=0).detach().cpu().numpy()
@@ -158,6 +173,8 @@ class VanillaPU(L.LightningModule):
 
         tgt_roc_auc = roc_auc_score(y_oracle[tgt_mask], probs[:, 1][tgt_mask])
         self.log("tgt/performance.AU-ROC", tgt_roc_auc, on_step=False, on_epoch=True)
+
+        self.test_step_outputs = []
 
     def configure_optimizers(self):
         return self.optimizer
