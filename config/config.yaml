@@ -1,7 +1,7 @@
 defaults:
   - trainer: default.yaml
   - datamodule: default.yaml
-  - detector: multiple_recalls.yaml
+  - detector: propensity_weighting.yaml
   - logger: tensorboard.yaml
   - _self_
 
@@ -408,7 +408,8 @@ arch_param:
     - 0.5
 learning_rate: 0.001
 weight_decay: 0.
-max_epochs: 2000
+max_epochs: 1500
+pe_epochs: 500
 pe_patience: 50
 
 

@@ -8,5 +8,6 @@ novel_cls: ${novel_cls}
 learning_rate: ${learning_rate}
 weight_decay: ${weight_decay}
 max_epochs: ${max_epochs}
+pe_epochs: ${pe_epochs}
 pe_patience: ${pe_patience}
 seed: ${seed}

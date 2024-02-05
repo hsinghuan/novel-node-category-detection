@@ -18,6 +18,7 @@ class PropensityWeighting(L.LightningModule):
             learning_rate,
             weight_decay,
             max_epochs,
+            pe_epochs,
             pe_patience,
             seed):
         super().__init__()
@@ -31,7 +32,7 @@ class PropensityWeighting(L.LightningModule):
         self.propensity_estimator, self.propensity_optimizer = get_model_optimizer(model_type, arch_param, learning_rate, weight_decay)
 
         self.max_epochs = max_epochs
-        self.pe_epochs = self.max_epochs // 2
+        self.pe_epochs = pe_epochs
         self.pe_staleness = 0
         self.pe_patience = pe_patience
 
@@ -44,6 +45,7 @@ class PropensityWeighting(L.LightningModule):
         self.validation_step_outputs = []
         self.test_step_outputs = []
         self.automatic_optimization = False
+        self.save_hyperparameters()
 
     def forward(self, model, data):
         if self.model_type == "mlp":
@@ -71,7 +73,7 @@ class PropensityWeighting(L.LightningModule):
             logits_detector = self.forward(self.novelty_detector, batch)
             # # make a copy of source weights (s = 1 term in Bekker et al.)
             # # y_s_pseudo = 1 indicates synthetic target data points with 1 - 1 / e weight
-            # y_s_pseudo = torch.randint(2, batch.src_mask[mask].sum().item())
+            # y_s_pseudo = torch.randint(2, batch.src_mask[mask].sum().item()) # src train/val/test
             # sample_weights = 1. / self.propensity_src[mask].detach()
             # sample_weights[y_s_pseudo == 1] = 1 - sample_weights[y_s_pseudo == 1]
             # sample_weights = torch.cat([sample_weights, torch.ones(batch.tgt_mask[mask].sum().item())], dim=0)
@@ -115,7 +117,6 @@ class PropensityWeighting(L.LightningModule):
         elif stage == "test":
             probs = F.softmax(logits_detector, dim=1)
             return loss, logits_detector, probs, y, y_oracle, batch.tgt_mask, mask
-
         else:
             raise ValueError(f"Invalid stage: {stage}")
 
@@ -180,11 +181,10 @@ class PropensityWeighting(L.LightningModule):
             roc_auc = roc_auc_score(y_oracle[tgt_val_mask], probs[:, 1][tgt_val_mask])
             self.log("val/performance.AU-ROC", roc_auc, on_step=False, on_epoch=True)
 
-        if self.current_epoch >= self.pe_epochs or self.pe_staleness >= self.pe_patience:
+        if self.warm_start and (self.current_epoch >= self.pe_epochs or self.pe_staleness >= self.pe_patience):
             self.warm_start = False
             self.propensity_estimator = deepcopy(self.best_propensity_estimator)
-        else:
-            self.warm_start = True
+            del self.best_propensity_estimator
 
         self.validation_step_outputs = []
 
