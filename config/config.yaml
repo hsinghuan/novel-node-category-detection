@@ -1,7 +1,7 @@
 defaults:
   - trainer: default.yaml
   - datamodule: default.yaml
-  - detector: propensity_weighting.yaml
+  - detector: sar_em.yaml
   - logger: tensorboard.yaml
   - _self_
 
@@ -180,11 +180,11 @@ test_ckpt_version: 0
 
 
 # cora
-novel_cls: 6
-data_dir: "/home/hhchung/data/nncd/"
-dataset_name: "Cora"
-dataset_subdir: "shift"
-feat_dim: 1433
+#novel_cls: 6
+#data_dir: "/home/hhchung/data/nncd/"
+#dataset_name: "Cora"
+#dataset_subdir: "shift"
+#feat_dim: 1433
 
 #method: "pu_oracle"
 #model_type: mlp
@@ -388,40 +388,65 @@ feat_dim: 1433
 
 
 # propensity weighting
-method: propensity_weighting
-mode: null
-model_type: gcn
-log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
-log_subdir: null
-arch_param:
-  gnn_dim_list:
-    - ${feat_dim}
-    - 16
-    - 16
-  mlp_dim_list:
-    - 16
-    - 8
-    - 2
-  gnn_dr_list:
-    - 0.5
-  mlp_dr_list:
-    - 0.5
-learning_rate: 0.001
-weight_decay: 0.
-max_epochs: 1500
-pe_epochs: 500
-pe_patience: 50
+#method: propensity_weighting
+#mode: null
+#model_type: gcn
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#log_subdir: null
+#arch_param:
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 16
+#    - 16
+#  mlp_dim_list:
+#    - 16
+#    - 8
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#learning_rate: 0.001
+#weight_decay: 0.
+#max_epochs: 2000
+#pe_epochs: 500
+#pe_patience: 50
+
+# sar em
+#method: sar_em
+#mode: domain_disc
+#model_type: gcn
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#log_subdir: null
+#arch_param:
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 16
+#    - 16
+#  mlp_dim_list:
+#    - 16
+#    - 8
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#learning_rate: 0.001
+#weight_decay: 0.
+#max_epochs: 500
+#inner_epochs: 200
+#refit: True
 
 
 
 # citeseer
 #novel_cls: 0
 #data_dir: "/home/hhchung/data/nncd/"
-#novel_cls: 5
-#data_dir: "/home/hhchung/data/nncd2/"
-#dataset_name: "CiteSeer"
-#dataset_subdir: "shift"
-#feat_dim: 3703
+novel_cls: 5
+data_dir: "/home/hhchung/data/nncd2/"
+dataset_name: "CiteSeer"
+dataset_subdir: "shift"
+feat_dim: 3703
 
 
 #method: pu
@@ -535,3 +560,29 @@ pe_patience: 50
 #model_selection_args:
 #  criteria: conoc
 #  beta: 0.03
+
+# sar em
+method: sar_em
+mode: domain_disc
+model_type: gcn
+log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+log_subdir: null
+arch_param:
+  gnn_dim_list:
+    - ${feat_dim}
+    - 64
+    - 16
+  mlp_dim_list:
+    - 16
+    - 8
+    - 2
+  gnn_dr_list:
+    - 0.5
+  mlp_dr_list:
+    - 0.5
+learning_rate: 0.001
+weight_decay: 0.
+max_epochs: 500
+inner_epochs: 200
+refit: True
+

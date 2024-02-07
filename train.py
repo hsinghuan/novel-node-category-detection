@@ -24,7 +24,8 @@ def train(config):
         trainer: L.Trainer = hydra.utils.instantiate(
             config.trainer,
             logger=logger,
-            callbacks=[checkpoint_callback, early_stop_callback]
+            callbacks=[checkpoint_callback, early_stop_callback],
+            num_sanity_val_steps=0
         )
     else:
         checkpoint_callback = ModelCheckpoint(monitor="val/loss",
@@ -33,7 +34,8 @@ def train(config):
         trainer: L.Trainer = hydra.utils.instantiate(
             config.trainer,
             logger=logger,
-            callbacks=[checkpoint_callback]
+            callbacks=[checkpoint_callback],
+            num_sanity_val_steps=0
         )
 
     detector: L.LightningModule = hydra.utils.instantiate(config.detector)
