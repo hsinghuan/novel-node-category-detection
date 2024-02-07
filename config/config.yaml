@@ -442,8 +442,10 @@ test_ckpt_version: 0
 # citeseer
 #novel_cls: 0
 #data_dir: "/home/hhchung/data/nncd/"
+#novel_cls: 5
+#data_dir: "/home/hhchung/data/nncd2/"
 novel_cls: 5
-data_dir: "/home/hhchung/data/nncd2/"
+data_dir: "/home/hhchung/data/nncd3/"
 dataset_name: "CiteSeer"
 dataset_subdir: "shift"
 feat_dim: 3703
