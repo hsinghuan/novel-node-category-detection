@@ -156,19 +156,12 @@ class CoNoC(L.LightningModule):
         else:
             return self.model(data.x, data.edge_index)
 
-    def negonly_recon_loss(self, z, neg_edge_index):
-        EPS = 1e-15
-        neg_loss = -torch.log(1 -
-                              self.model.encoder.decoder(z, neg_edge_index, sigmoid=True) +
-                              EPS).mean()
-        return neg_loss
-
     def aux_loss(self, data):
         if self.link_predict == "gae":
             assert "gae" in self.model_type
             z = self.model.encoder.encode(data.x, data.edge_index)
             aux_loss = self.model.encoder.recon_loss(z, data.edge_index)
-        elif self.link_predict == "gae_tgt" or self.link_predict == "gae_tgt_negonly" or self.link_predict == "gae_tgt_struct":
+        elif self.link_predict == "gae_tgt" or self.link_predict == "gae_tgt_struct":
             assert "gae" in self.model_type
             z = self.model.encoder.encode(data.x, data.edge_index)
             tgt_edge_index, _ = subgraph(data.tgt_mask, data.edge_index)
@@ -183,17 +176,27 @@ class CoNoC(L.LightningModule):
                 relabeled_tgt_neg_edge_index = torch.stack([relabeled_tgt_neg_edge_index_0, relabeled_tgt_neg_edge_index_1])
             else:
                 relabeled_tgt_neg_edge_index = negative_sampling(relabeled_tgt_edge_index)
-            if self.link_predict == "gae_tgt" or self.link_predict == "gae_tgt_struct":
-                aux_loss = self.model.encoder.recon_loss(z[data.tgt_mask], relabeled_tgt_edge_index, relabeled_tgt_neg_edge_index)
-            elif self.link_predict == "gae_tgt_negonly":
-                aux_loss = self.negonly_recon_loss(z[data.tgt_mask], relabeled_tgt_neg_edge_index)
-        elif self.link_predict == "gae_tgt_neg":
-            # positive samples are from full graph
-            # negative samples are only from target graph
+            aux_loss = self.model.encoder.recon_loss(z[data.tgt_mask], relabeled_tgt_edge_index, relabeled_tgt_neg_edge_index)
+        elif self.link_predict == "gae_hard_tgt":
             assert "gae" in self.model_type
             z = self.model.encoder.encode(data.x, data.edge_index)
-            neg_edge_index = subgraph_negative_sampling(data.edge_index, data.tgt_mask)
-            aux_loss = self.model.encoder.recon_loss(z, data.edge_index, neg_edge_index)
+            # get the mask indicating the "hard" target nodes
+            novel_scores = self.model.classifier(z)[:, 1].detach()
+            num_nodes = data.tgt_mask.size(0)
+            num_tgt_nodes = data.tgt_mask.sum().item()
+            tgt_set = data.tgt_mask.nonzero().view(-1)
+            tgt_novel_scores = novel_scores[data.tgt_mask]
+            sorted_score_idx = torch.argsort(tgt_novel_scores)
+            hard_tgt_set = tgt_set[sorted_score_idx[:int(num_tgt_nodes * (1 - self.target_recalls[0]))]]
+            hard_tgt_set, _ = torch.sort(hard_tgt_set)
+            hard_tgt_mask = torch.zeros_like(data.tgt_mask, dtype=torch.bool)
+            hard_tgt_mask[hard_tgt_set] = 1
+            hard_tgt_edge_index, _ = subgraph(hard_tgt_mask, data.edge_index)
+            # print(novel_scores[hard_tgt_mask].mean() < novel_scores[data.tgt_mask].mean())
+            relabeled_hard_tgt_edge_index, _ = map_index(hard_tgt_edge_index, hard_tgt_set, max_index=num_nodes, inclusive=True)
+            relabeled_hard_tgt_edge_index = relabeled_hard_tgt_edge_index.view(2, -1)
+            relabeled_hard_tgt_neg_edge_index = negative_sampling(relabeled_hard_tgt_edge_index)
+            aux_loss = self.model.encoder.recon_loss(z[hard_tgt_mask], relabeled_hard_tgt_edge_index, relabeled_hard_tgt_neg_edge_index)
         else:
             aux_loss = 0.
 

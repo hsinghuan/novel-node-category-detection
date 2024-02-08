@@ -180,11 +180,11 @@ test_ckpt_version: 0
 
 
 # cora
-#novel_cls: 6
-#data_dir: "/home/hhchung/data/nncd/"
-#dataset_name: "Cora"
-#dataset_subdir: "shift"
-#feat_dim: 1433
+novel_cls: 6
+data_dir: "/home/hhchung/data/nncd/"
+dataset_name: "Cora"
+dataset_subdir: "shift"
+feat_dim: 1433
 
 
 
@@ -332,6 +332,38 @@ test_ckpt_version: 0
 #  criteria: conoc
 #  beta: 0.1
 
+# conoc gcn-gae-hard-tgt
+method: conoc_linkpred_hardtgt
+model_type: gcn_gae
+log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${dual_learning_rate}_${constrained_penalty}_${aux_loss_weight}_${seed}/${log_subdir}
+log_subdir: ${target_recalls}
+arch_param:
+  gnn_dim_list:
+    - ${feat_dim}
+    - 16
+    - 16
+  mlp_dim_list:
+    - 16
+    - 8
+    - 2
+  gnn_dr_list:
+    - 0.5
+  mlp_dr_list:
+    - 0.5
+mode: constrained_opt
+target_recalls:
+  - 0.1
+learning_rate: 0.001
+dual_learning_rate: 0.001
+constrained_penalty: 0.
+max_epochs: 1000
+lagrange_multiplier_init: 0.1
+link_predict: gae_hard_tgt
+aux_loss_weight: 1e-3
+model_selection_args:
+  criteria: conoc
+  beta: 0.1
+
 
 
 
@@ -340,11 +372,11 @@ test_ckpt_version: 0
 # citeseer
 #novel_cls: 5
 #data_dir: "/home/hhchung/data/nncd2/"
-novel_cls: 5
-data_dir: "/home/hhchung/data/nncd3/"
-dataset_name: "CiteSeer"
-dataset_subdir: "shift"
-feat_dim: 3703
+#novel_cls: 5
+#data_dir: "/home/hhchung/data/nncd3/"
+#dataset_name: "CiteSeer"
+#dataset_subdir: "shift"
+#feat_dim: 3703
 
 
 #method: domain_discriminator
@@ -395,36 +427,36 @@ feat_dim: 3703
 #max_epochs: 2000
 
 # conoc gcn
-method: conoc
-model_type: gcn
-log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${dual_learning_rate}_${constrained_penalty}_${seed}/${log_subdir}
-log_subdir: ${target_recalls}
-arch_param:
-  gnn_dim_list:
-    - ${feat_dim}
-    - 64 # 16
-    - 16 # 8
-  mlp_dim_list:
-    - 16 # 8
-    - 8 # 4
-    - 2
-  gnn_dr_list:
-    - 0.5
-  mlp_dr_list:
-    - 0.5
-mode: constrained_opt
-target_recalls:
-  - 0.1
-learning_rate: 0.001
-dual_learning_rate: 0.001
-constrained_penalty: 0. # 1e-2
-max_epochs: 1500 # 1000
-lagrange_multiplier_init: 0.1
-link_predict: null
-aux_loss_weight: 0.
-model_selection_args:
-  criteria: conoc
-  beta: 0.05 # 0.1 # 0.1
+#method: conoc
+#model_type: gcn
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${dual_learning_rate}_${constrained_penalty}_${seed}/${log_subdir}
+#log_subdir: ${target_recalls}
+#arch_param:
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 64 # 16
+#    - 16 # 8
+#  mlp_dim_list:
+#    - 16 # 8
+#    - 8 # 4
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#mode: constrained_opt
+#target_recalls:
+#  - 0.1
+#learning_rate: 0.001
+#dual_learning_rate: 0.001
+#constrained_penalty: 0. # 1e-2
+#max_epochs: 1000 # 1500 # 1000
+#lagrange_multiplier_init: 0.1
+#link_predict: null
+#aux_loss_weight: 0.
+#model_selection_args:
+#  criteria: conoc
+#  beta: 0.1 # 0.05 # 0.1
 
 
 # conoc gcn-gae
@@ -492,4 +524,34 @@ model_selection_args:
 #  criteria: conoc
 #  beta: 0.1 # 0.1 # 0.05
 
-
+# conoc gcn-gae-hard-tgt
+#method: conoc_linkpred_hardtgt
+#model_type: gcn_gae
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${dual_learning_rate}_${constrained_penalty}_${aux_loss_weight}_${seed}/${log_subdir}
+#log_subdir: ${target_recalls}
+#arch_param:
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 64
+#    - 16
+#  mlp_dim_list:
+#    - 16
+#    - 8
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#mode: constrained_opt
+#target_recalls:
+#  - 0.1
+#learning_rate: 0.001
+#dual_learning_rate: 0.001
+#constrained_penalty: 0.
+#max_epochs: 1000
+#lagrange_multiplier_init: 0.1
+#link_predict: gae_hard_tgt
+#aux_loss_weight: 1e-3
+#model_selection_args:
+#  criteria: conoc
+#  beta: 0.1
