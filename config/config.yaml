@@ -1,7 +1,7 @@
 defaults:
   - trainer: default.yaml
   - datamodule: default.yaml
-  - detector: multiple_recalls.yaml
+  - detector: pu.yaml
   - logger: tensorboard.yaml
   - _self_
 
@@ -333,10 +333,69 @@ feat_dim: 1433
 #  beta: 0.1
 
 # conoc gcn-gae-hard-tgt
-method: conoc_linkpred_hardtgt
-model_type: gcn_gae
-log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${dual_learning_rate}_${constrained_penalty}_${aux_loss_weight}_${seed}/${log_subdir}
-log_subdir: ${target_recalls}
+#method: conoc_linkpred_hardtgt
+#model_type: gcn_gae
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${dual_learning_rate}_${constrained_penalty}_${aux_loss_weight}_${seed}/${log_subdir}
+#log_subdir: ${target_recalls}
+#arch_param:
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 16
+#    - 16
+#  mlp_dim_list:
+#    - 16
+#    - 8
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#mode: constrained_opt
+#target_recalls:
+#  - 0.1
+#learning_rate: 0.001
+#dual_learning_rate: 0.001
+#constrained_penalty: 0.
+#max_epochs: 1000
+#lagrange_multiplier_init: 0.1
+#link_predict: gae_hard_tgt
+#aux_loss_weight: 1e-3
+#model_selection_args:
+#  criteria: conoc
+#  beta: 0.1
+
+
+# uPU
+#method: upu
+#mode: domain_disc
+#model_type: gcn
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#log_subdir: null
+#arch_param:
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 16
+#    - 16
+#  mlp_dim_list:
+#    - 16
+#    - 8
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#learning_rate: 0.001
+#weight_decay: 0.
+#max_epochs: 1000
+#warmup_epochs: 100
+#nnPU: False
+
+# nnPU
+method: nnpu
+mode: domain_disc
+model_type: gcn
+log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+log_subdir: null
 arch_param:
   gnn_dim_list:
     - ${feat_dim}
@@ -350,22 +409,11 @@ arch_param:
     - 0.5
   mlp_dr_list:
     - 0.5
-mode: constrained_opt
-target_recalls:
-  - 0.1
 learning_rate: 0.001
-dual_learning_rate: 0.001
-constrained_penalty: 0.
+weight_decay: 0.
 max_epochs: 1000
-lagrange_multiplier_init: 0.1
-link_predict: gae_hard_tgt
-aux_loss_weight: 1e-3
-model_selection_args:
-  criteria: conoc
-  beta: 0.1
-
-
-
+warmup_epochs: 100
+nnPU: True
 
 
 
@@ -555,3 +603,53 @@ model_selection_args:
 #model_selection_args:
 #  criteria: conoc
 #  beta: 0.1
+
+# uPU
+#method: upu
+#mode: domain_disc
+#model_type: gcn
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#log_subdir: null
+#arch_param:
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 64
+#    - 16
+#  mlp_dim_list:
+#    - 16
+#    - 8
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#learning_rate: 0.001
+#weight_decay: 0.
+#max_epochs: 1000
+#warmup_epochs: 100
+#nnPU: False
+
+# nnPU
+#method: nnpu
+#mode: domain_disc
+#model_type: gcn
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#log_subdir: null
+#arch_param:
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 64
+#    - 16
+#  mlp_dim_list:
+#    - 16
+#    - 8
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#learning_rate: 0.001
+#weight_decay: 0.
+#max_epochs: 1000
+#warmup_epochs: 100
+#nnPU: True
