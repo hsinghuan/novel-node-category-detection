@@ -42,9 +42,9 @@ def u_probs(net, device, data, model_type="mlp", val=True, novel_cls=0):
             outputs = net(data.x, data.edge_index)
 
         if val:
-            mask = torch.logical_and(data.src_mask, data.val_mask)
+            mask = torch.logical_and(data.tgt_mask, data.val_mask)
         else:
-            mask = data.src_mask
+            mask = data.tgt_mask
         outputs = outputs[mask]
         targets = targets[mask]
         probs = torch.nn.functional.softmax(outputs, dim=-1)
