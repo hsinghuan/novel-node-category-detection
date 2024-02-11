@@ -5,6 +5,7 @@ import torch
 import torch.nn.functional as F
 from torch_geometric.utils import subgraph, negative_sampling, structured_negative_sampling
 from src.utils.model_utils import get_model_optimizer
+from src.utils.mpe_utils import p_probs, u_probs, BBE_estimator
 
 class PUGNN(L.LightningModule):
     def __init__(self,
@@ -15,6 +16,7 @@ class PUGNN(L.LightningModule):
                  novel_cls,
                  learning_rate,
                  max_epochs,
+                 warmup_epochs,
                  seed,
                  weight_decay=0.,
                  reg_loss_weight=1e-2
@@ -32,6 +34,8 @@ class PUGNN(L.LightningModule):
         self.model, self.optimizer = get_model_optimizer(model_type, arch_param, learning_rate, weight_decay)
 
         self.max_epochs = max_epochs
+        self.warmup_epochs = warmup_epochs
+        self.warm_start = True
         self.seed = seed
 
         self.validation_step_outputs = []
@@ -65,9 +69,15 @@ class PUGNN(L.LightningModule):
             mask = batch.test_mask
 
         logits = self.forward(batch)
-        pu_loss = self.loss(batch, logits, y, mask)
-        reg_loss = self.reg_loss(batch, mask)
-        loss = pu_loss + reg_loss
+
+        if self.warm_start:
+            loss = F.cross_entropy(logits[mask], y[mask])
+            pu_loss, reg_loss = np.inf, np.inf
+        else:
+            pu_loss = self.loss(batch, logits, y, mask)
+            reg_loss = self.reg_loss(batch, mask)
+            loss = pu_loss + reg_loss
+
 
         if stage == "train":
             optimizer = self.optimizers()
@@ -75,10 +85,21 @@ class PUGNN(L.LightningModule):
             self.manual_backward(loss)
             optimizer.step()
             return loss, pu_loss, reg_loss
-
-        elif stage == "val" or stage == "test":
+        elif stage == "val":
+            probs = F.softmax(logits, dim=1)
+            if self.warm_start:
+                pos_probs = p_probs(self.model, self.device, batch, model_type=self.model_type, val=True)
+                unlabeled_probs, unlabeled_targets = u_probs(self.model, self.device, batch, model_type=self.model_type,
+                                                             val=True, novel_cls=self.novel_cls)
+            else:
+                pos_probs, unlabeled_probs, unlabeled_targets = None, None, None
+            return loss, pu_loss, reg_loss, probs, pos_probs, unlabeled_probs, unlabeled_targets
+        elif stage == "test":
             probs = F.softmax(logits, dim=1)
             return loss, pu_loss, reg_loss, probs
+        else:
+            raise ValueError(f"Invalid stage {stage}")
+
 
     def training_step(self, batch, batch_idx):
         loss, pu_loss, reg_loss = self.process_batch(batch, "train")
@@ -91,10 +112,15 @@ class PUGNN(L.LightningModule):
         return {"loss": loss.detach()}
 
     def validation_step(self, batch, batch_idx):
-        loss, pu_loss, reg_loss, probs = self.process_batch(batch, "val") # , batch_linkpred)
+        loss, pu_loss, reg_loss, probs, pos_probs, unlabeled_probs, unlabeled_targets = self.process_batch(batch, "val") # , batch_linkpred)
         batch_size = batch.val_mask.sum().item()
 
-        self.log("val/loss", loss, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+        if self.warm_start:
+            self.log("val/warm_loss", loss, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
+            self.log("val/loss", 1e3 - self.current_epoch, on_step=True, on_epoch=True, prog_bar=False,
+                     batch_size=batch_size)  # dummy val loss just to avoid earlystopping
+        else:
+            self.log("val/loss", loss, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
         self.log("val/pu_loss", pu_loss, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
         self.log("val/reg_loss", reg_loss, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
         y_oracle = torch.zeros_like(batch.y, dtype=torch.int64)
@@ -108,7 +134,7 @@ class PUGNN(L.LightningModule):
         return outputs
 
     def test_step(self, batch, batch_idx):
-        loss, pu_loss, reg_loss, probs = self.process_batch(batch, "test") # , batch_linkpred)
+        loss, pu_loss, reg_loss, probs = self.process_batch(batch, "test")
         batch_size = batch.test_mask.sum().item()
         self.log("test/loss", loss, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
         self.log("test/pu_loss", pu_loss, on_step=True, on_epoch=True, prog_bar=False, batch_size=batch_size)
