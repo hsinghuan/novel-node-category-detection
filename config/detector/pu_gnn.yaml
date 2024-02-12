@@ -1,0 +1,14 @@
+_target_: src.detector.pu_gnn.PUGNN
+
+model_type: ${model_type}
+arch_param: ${arch_param}
+dataset_name: ${dataset_name}
+novel_cls: ${novel_cls}
+learning_rate: ${learning_rate}
+weight_decay: ${weight_decay}
+max_epochs: ${max_epochs}
+warmup_epochs: ${warmup_epochs}
+reg_loss_weight: ${reg_loss_weight}
+num_hops: ${num_hops}
+reg_K: ${reg_K}
+seed: ${seed}
