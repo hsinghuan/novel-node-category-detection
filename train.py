@@ -26,6 +26,14 @@ def train(config):
             logger=logger,
             callbacks=[checkpoint_callback, early_stop_callback]
         )
+    elif config.mode == "label_prop":
+        checkpoint_callback = ModelCheckpoint()
+        trainer: L.Trainer = hydra.utils.instantiate(
+            config.trainer,
+            logger=logger,
+            num_sanity_val_steps=0,
+            callbacks=[checkpoint_callback]
+        )
     else:
         checkpoint_callback = ModelCheckpoint(monitor="val/loss",
                                               save_weights_only=True,
