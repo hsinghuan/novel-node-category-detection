@@ -1,7 +1,7 @@
 defaults:
   - trainer: default.yaml
   - datamodule: default.yaml
-  - detector: pu.yaml
+  - detector: multiple_recalls.yaml
   - logger: tensorboard.yaml
   - _self_
 
@@ -604,12 +604,10 @@ feat_dim: 3703
 #  criteria: conoc
 #  beta: 0.1
 
-# uPU
-method: upu
-mode: domain_disc
-model_type: gcn
-log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
-log_subdir: null
+method: conoc_linkpred_hardtgt_2
+model_type: gcn_gae
+log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${dual_learning_rate}_${constrained_penalty}_${aux_loss_weight}_${seed}/${log_subdir}
+log_subdir: ${target_recalls}
 arch_param:
   gnn_dim_list:
     - ${feat_dim}
@@ -623,11 +621,44 @@ arch_param:
     - 0.5
   mlp_dr_list:
     - 0.5
+mode: constrained_opt
+target_recalls:
+  - 0.1
 learning_rate: 0.001
-weight_decay: 0.
+dual_learning_rate: 0.001
+constrained_penalty: 0.
 max_epochs: 1000
-warmup_epochs: 150
-nnPU: False
+lagrange_multiplier_init: 0.1
+link_predict: gae_hard_tgt_2
+aux_loss_weight: 1e-3
+model_selection_args:
+  criteria: conoc
+  beta: 0.1
+
+# uPU
+#method: upu
+#mode: domain_disc
+#model_type: gcn
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#log_subdir: null
+#arch_param:
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 64
+#    - 16
+#  mlp_dim_list:
+#    - 16
+#    - 8
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#learning_rate: 0.001
+#weight_decay: 0.
+#max_epochs: 1000
+#warmup_epochs: 150
+#nnPU: False
 
 # nnPU
 #method: nnpu

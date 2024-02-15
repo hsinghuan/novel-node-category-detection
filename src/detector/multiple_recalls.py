@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.metrics import roc_auc_score, confusion_matrix
+from sklearn.metrics import roc_auc_score, average_precision_score, confusion_matrix
 import lightning as L
 import torch
 import torch.nn.functional as F
@@ -197,6 +197,29 @@ class CoNoC(L.LightningModule):
             relabeled_hard_tgt_edge_index = relabeled_hard_tgt_edge_index.view(2, -1)
             relabeled_hard_tgt_neg_edge_index = negative_sampling(relabeled_hard_tgt_edge_index)
             aux_loss = self.model.encoder.recon_loss(z[hard_tgt_mask], relabeled_hard_tgt_edge_index, relabeled_hard_tgt_neg_edge_index)
+        elif self.link_predict == "gae_hard_tgt_2": # negative samples contain (confident tgt, non-confident tgt) pair
+            assert "gae" in self.model_type
+            z = self.model.encoder.encode(data.x, data.edge_index) # calculate node representations
+            novel_scores = self.model.classifier(z)[:, 1].detach() # obtain novel scores for each node
+            num_nodes = data.tgt_mask.size(0)
+            num_tgt_nodes = data.tgt_mask.sum().item()
+            tgt_set = data.tgt_mask.nonzero().view(-1)
+            tgt_novel_scores = novel_scores[data.tgt_mask] # the novel scores of target nodes
+            sorted_score_idx = torch.argsort(tgt_novel_scores) # the ranked index of target novel scores
+            hard_tgt_set = tgt_set[sorted_score_idx[:int(num_tgt_nodes * (1 - self.target_recalls[0]))]] # keep the least novel target nodes
+            hard_tgt_set, _ = torch.sort(hard_tgt_set)
+            hard_tgt_mask = torch.zeros_like(data.tgt_mask, dtype=torch.bool)
+            hard_tgt_mask[hard_tgt_set] = 1 # mask for harder target nodes
+            tgt_edge_index, _ = subgraph(data.tgt_mask, data.edge_index) # subgraph edge index only including target nodes
+            relabeled_tgt_edge_index, _ = map_index(tgt_edge_index, tgt_set, max_index=num_nodes, inclusive=True) # relabel node index
+            relabeled_tgt_edge_index = relabeled_tgt_edge_index.view(2, -1)
+            relabeled_tgt_neg_edge_index = negative_sampling(relabeled_tgt_edge_index)
+            # get a bool tensor with the same shape as the neg edge index, each element specifiy if a node is hard or not
+            relabeled_tgt_neg_edge_index_mask = torch.isin(relabeled_tgt_neg_edge_index, hard_tgt_set)
+            # make a mask to filter out easy-easy pair
+            has_hard_edge_index_mask = torch.any(relabeled_tgt_neg_edge_index_mask, dim=0)
+            neg_edge_index = relabeled_tgt_neg_edge_index[:,has_hard_edge_index_mask]
+            aux_loss = self.model.encoder.recon_loss(z[data.tgt_mask], relabeled_tgt_edge_index, neg_edge_index)
         else:
             aux_loss = 0.
 
@@ -383,8 +406,10 @@ class CoNoC(L.LightningModule):
         batch_size = tgt_val_mask.sum()
         for i in range(len(self.target_recalls)):
             roc_auc = roc_auc_score(y_oracle[tgt_val_mask], probs[:, i, 1][tgt_val_mask])
+            ap = average_precision_score(y_oracle[tgt_val_mask], probs[:, i, 1][tgt_val_mask])
             cm = confusion_matrix(y_oracle[tgt_val_mask], np.argmax(probs[:, i][tgt_val_mask], axis=1))
             self.log("val/performance.AU-ROC_" + str(self.target_recalls[i]), roc_auc, on_step=False, on_epoch=True, batch_size=batch_size)
+            self.log("val/performance.AP_" + str(self.target_recalls[i]), ap, on_step=False, on_epoch=True, batch_size=batch_size)
             self.log("val/performance.TP_" + str(self.target_recalls[i]), cm[1,1], on_step=False, on_epoch=True, batch_size=batch_size)
             self.log("val/performance.FP_" + str(self.target_recalls[i]), cm[0,1], on_step=False, on_epoch=True, batch_size=batch_size)
             self.log("val/performance.TN_" + str(self.target_recalls[i]), cm[0,0], on_step=False, on_epoch=True, batch_size=batch_size)
@@ -402,11 +427,15 @@ class CoNoC(L.LightningModule):
         tgt_test_mask = np.logical_and(tgt_mask, test_mask)
         for i in range(len(self.target_recalls)):
             roc_auc = roc_auc_score(y_oracle[tgt_test_mask], probs[:, i, 1][tgt_test_mask])
+            ap = average_precision_score(y_oracle[tgt_test_mask], probs[:, i, 1][tgt_test_mask])
             self.log("test/performance.AU-ROC_" + str(self.target_recalls[i]), roc_auc, on_step=False, on_epoch=True, batch_size=tgt_test_mask.sum())
+            self.log("test/performance.AP_" + str(self.target_recalls[i]), ap, on_step=False, on_epoch=True, batch_size=tgt_test_mask.sum())
 
         for i in range(len(self.target_recalls)):
             tgt_roc_auc = roc_auc_score(y_oracle[tgt_mask], probs[:, i, 1][tgt_mask])
+            tgt_ap = average_precision_score(y_oracle[tgt_mask], probs[:, i, 1][tgt_mask])
             self.log("tgt/performance.AU-ROC_" + str(self.target_recalls[i]), tgt_roc_auc, on_step=False, on_epoch=True, batch_size=tgt_mask.sum())
+            self.log("tgt/performance.AP_" + str(self.target_recalls[i]), tgt_ap, on_step=False, on_epoch=True, batch_size=tgt_mask.sum())
 
         self.test_step_outputs = []
 
