@@ -3,7 +3,7 @@ Copied from https://github.com/cimeist=Falseter/pu-learning/blob/master/loss.py
 """
 import numpy as np
 from copy import deepcopy
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, average_precision_score, f1_score
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -187,8 +187,12 @@ class PULearning(L.LightningModule):
         # compute roc_auc_score, average precision
         tgt_val_mask = np.logical_and(tgt_mask, val_mask)
         roc_auc = roc_auc_score(y_oracle[tgt_val_mask], probs[:, 1][tgt_val_mask])
+        ap = average_precision_score(y_oracle[tgt_val_mask], probs[:, 1][tgt_val_mask])
+        f1 = f1_score(y_oracle[tgt_val_mask], np.argmax(probs, axis=1)[tgt_val_mask])
 
         self.log("val/performance.AU-ROC", roc_auc, on_step=False, on_epoch=True)
+        self.log("val/performance.AP", ap, on_step=False, on_epoch=True)
+        self.log("val/performance.F1", f1, on_step=False, on_epoch=True)
         self.log("val/estimated_prior", self.prior, on_step=False, on_epoch=True)
         self.log("val/true_prior", true_prior, on_step=False, on_epoch=True)
 
@@ -221,10 +225,18 @@ class PULearning(L.LightningModule):
         # compute roc_auc_score, average precision
         tgt_test_mask = np.logical_and(tgt_mask, test_mask)
         roc_auc = roc_auc_score(y_oracle[tgt_test_mask], probs[:, 1][tgt_test_mask])
+        ap = average_precision_score(y_oracle[tgt_test_mask], probs[:, 1][tgt_test_mask])
+        f1 = f1_score(y_oracle[tgt_test_mask], np.argmax(probs, axis=1)[tgt_test_mask])
         self.log("test/performance.AU-ROC", roc_auc, on_step=False, on_epoch=True)
+        self.log("test/performance.AP", ap, on_step=False, on_epoch=True)
+        self.log("test/performance.F1", f1, on_step=False, on_epoch=True)
 
         tgt_roc_auc = roc_auc_score(y_oracle[tgt_mask], probs[:, 1][tgt_mask])
+        tgt_ap = average_precision_score(y_oracle[tgt_mask], probs[:, 1][tgt_mask])
+        tgt_f1 = f1_score(y_oracle[tgt_mask], np.argmax(probs, axis=1)[tgt_mask])
         self.log("tgt/performance.AU-ROC", tgt_roc_auc, on_step=False, on_epoch=True)
+        self.log("tgt/performance.AP", tgt_ap, on_step=False, on_epoch=True)
+        self.log("tgt/performance.F1", tgt_f1, on_step=False, on_epoch=True)
 
         self.test_step_outputs = []
 
