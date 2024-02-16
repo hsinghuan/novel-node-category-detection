@@ -1,7 +1,7 @@
 defaults:
   - trainer: default.yaml
   - datamodule: default.yaml
-  - detector: pu.yaml
+  - detector: sar_em.yaml
   - logger: tensorboard.yaml
   - _self_
 
@@ -185,7 +185,6 @@ data_dir: "/home/hhchung/data/nncd/"
 dataset_name: "Cora"
 dataset_subdir: "shift"
 feat_dim: 1433
-
 
 
 #method: "pu_oracle"
@@ -391,29 +390,29 @@ feat_dim: 1433
 #nnPU: False
 
 # nnPU
-method: nnpu
-mode: domain_disc
-model_type: gcn
-log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
-log_subdir: null
-arch_param:
-  gnn_dim_list:
-    - ${feat_dim}
-    - 16
-    - 16
-  mlp_dim_list:
-    - 16
-    - 8
-    - 2
-  gnn_dr_list:
-    - 0.5
-  mlp_dr_list:
-    - 0.5
-learning_rate: 0.001
-weight_decay: 0.
-max_epochs: 1000
-warmup_epochs: 150
-nnPU: True
+#method: nnpu
+#mode: domain_disc
+#model_type: gcn
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#log_subdir: null
+#arch_param:
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 16
+#    - 16
+#  mlp_dim_list:
+#    - 16
+#    - 8
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#learning_rate: 0.001
+#weight_decay: 0.
+#max_epochs: 1000
+#warmup_epochs: 150
+#nnPU: True
 
 #method: reco_slip
 #model_type: gcn_gae
@@ -446,6 +445,58 @@ nnPU: True
 #  criteria: conoc
 #  beta: 0.1
 
+
+
+
+# propensity weighting
+#method: propensity_weighting
+#mode: null
+#model_type: gcn
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#log_subdir: null
+#arch_param:
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 16
+#    - 16
+#  mlp_dim_list:
+#    - 16
+#    - 8
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#learning_rate: 0.001
+#weight_decay: 0.
+#max_epochs: 2000
+#pe_epochs: 500
+#pe_patience: 50
+
+# sar em
+method: sar_em
+mode: domain_disc
+model_type: gcn
+log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+log_subdir: null
+arch_param:
+  gnn_dim_list:
+    - ${feat_dim}
+    - 16
+    - 16
+  mlp_dim_list:
+    - 16
+    - 8
+    - 2
+  gnn_dr_list:
+    - 0.5
+  mlp_dr_list:
+    - 0.5
+learning_rate: 0.001
+weight_decay: 0.
+max_epochs: 500
+inner_epochs: 200
+refit: True
 
 
 
@@ -714,3 +765,28 @@ nnPU: True
 #max_epochs: 1000
 #warmup_epochs: 150
 #nnPU: True
+
+# sar em
+#method: sar_em
+#mode: domain_disc
+#model_type: gcn
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#log_subdir: null
+#arch_param:
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 64
+#    - 16
+#  mlp_dim_list:
+#    - 16
+#    - 8
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#learning_rate: 0.001
+#weight_decay: 0.
+#max_epochs: 500
+#inner_epochs: 200
+#refit: True

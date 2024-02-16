@@ -1,0 +1,13 @@
+_target_: src.detector.propensity_weighting.PropensityWeighting
+
+
+model_type: ${model_type}
+arch_param: ${arch_param}
+dataset_name: ${dataset_name}
+novel_cls: ${novel_cls}
+learning_rate: ${learning_rate}
+weight_decay: ${weight_decay}
+max_epochs: ${max_epochs}
+pe_epochs: ${pe_epochs}
+pe_patience: ${pe_patience}
+seed: ${seed}
