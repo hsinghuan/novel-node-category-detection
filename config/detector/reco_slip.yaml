@@ -1,0 +1,16 @@
+_target_: src.detector.reco_slip.RECOSLIP
+
+mode: ${mode}
+model_type: ${model_type}
+arch_param: ${arch_param}
+dataset_name: ${dataset_name}
+novel_cls: ${novel_cls}
+target_recalls: ${target_recalls}
+learning_rate: ${learning_rate}
+dual_learning_rate: ${dual_learning_rate}
+constrained_penalty: ${constrained_penalty}
+max_epochs: ${max_epochs}
+seed: ${seed}
+lagrange_multiplier_init: ${lagrange_multiplier_init}
+link_predict: ${link_predict}
+aux_loss_weight: ${aux_loss_weight}
