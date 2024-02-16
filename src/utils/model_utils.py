@@ -32,7 +32,7 @@ def model_selection_from_val_outputs(val_outputs_dict: dict, model_selection_arg
     criteria = model_selection_args["criteria"]
     if criteria == "val_loss":
         pass
-    elif criteria == "conoc":
+    elif criteria == "reco_slip":
         beta = model_selection_args["beta"]
         highest_recall = -np.inf
         best_ckpt_dirpath = None
