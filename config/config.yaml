@@ -1,7 +1,7 @@
 defaults:
   - trainer: default.yaml
   - datamodule: default.yaml
-  - detector: sar_em.yaml
+  - detector: pu_gnn.yaml
   - logger: tensorboard.yaml
   - _self_
 
@@ -414,6 +414,7 @@ feat_dim: 1433
 #warmup_epochs: 150
 #nnPU: True
 
+
 #method: reco_slip
 #model_type: gcn_gae
 #log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${dual_learning_rate}_${constrained_penalty}_${aux_loss_weight}_${seed}/${log_subdir}
@@ -474,7 +475,32 @@ feat_dim: 1433
 #pe_patience: 50
 
 # sar em
-method: sar_em
+#method: sar_em
+#mode: domain_disc
+#model_type: gcn
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#log_subdir: null
+#arch_param:
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 16
+#    - 16
+#  mlp_dim_list:
+#    - 16
+#    - 8
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#learning_rate: 0.001
+#weight_decay: 0.
+#max_epochs: 500
+#inner_epochs: 200
+#refit: True
+
+# pu-gnn
+method: pu_gnn
 mode: domain_disc
 model_type: gcn
 log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
@@ -494,11 +520,11 @@ arch_param:
     - 0.5
 learning_rate: 0.001
 weight_decay: 0.
-max_epochs: 500
-inner_epochs: 200
-refit: True
-
-
+max_epochs: 1000
+warmup_epochs: 150
+reg_loss_weight: 1e-1
+reg_K: 50
+num_hops: 3
 
 # citeseer
 #novel_cls: 5
@@ -506,6 +532,7 @@ refit: True
 #dataset_name: "CiteSeer"
 #dataset_subdir: "shift"
 #feat_dim: 3703
+
 
 # domain discriminator
 #method: domain_discriminator
@@ -766,6 +793,7 @@ refit: True
 #warmup_epochs: 150
 #nnPU: True
 
+
 # sar em
 #method: sar_em
 #mode: domain_disc
@@ -790,3 +818,31 @@ refit: True
 #max_epochs: 500
 #inner_epochs: 200
 #refit: True
+
+
+# pu-gnn
+#method: pu_gnn
+#mode: domain_disc
+#model_type: gcn
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#log_subdir: null
+#arch_param:
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 64
+#    - 16
+#  mlp_dim_list:
+#    - 16
+#    - 8
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+#learning_rate: 0.001
+#weight_decay: 0.
+#max_epochs: 1000
+#warmup_epochs: 150
+#reg_loss_weight: 1e-1
+#reg_K: 50
+#num_hops: 3
