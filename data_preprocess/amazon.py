@@ -7,11 +7,10 @@ import lightning as L
 
 def preprocess(dataset_name, preprocess_name, cls_num, novel_cls, src_ratio_per_cls, args):
     root_dir = args.root_dir
-    dataset = datasets.Planetoid(root=root_dir, name=dataset_name)
+    dataset = datasets.Amazon(root=root_dir, name=dataset_name)
     data = dataset[0]
 
     num_nodes = len(data.y)
-
     # src/tgt split
     src_mask = torch.zeros(num_nodes, dtype=torch.bool)
     for cls in range(cls_num):
@@ -29,6 +28,7 @@ def preprocess(dataset_name, preprocess_name, cls_num, novel_cls, src_ratio_per_
     # train/val/(test) split
     src_train_val_ratio = np.array([0.8, 0.2])
     tgt_train_val_ratio = np.array([0.6, 0.2])
+
 
     src_indices = torch.nonzero(src_mask)
     src_num = len(src_indices)
@@ -83,32 +83,24 @@ def preprocess(dataset_name, preprocess_name, cls_num, novel_cls, src_ratio_per_
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Preprocess Cora and Citeseer for novel node category detection")
+    parser = argparse.ArgumentParser(description="Preprocess Amazon datasets for novel node category detection")
     parser.add_argument("--root_dir", type=str)
     parser.add_argument("--dataset", type=str)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
     L.seed_everything(args.seed)
-    if args.dataset == "Cora":
-        cls_num = 7
-        novel_cls = 6
-
-        # preprocess_name = "no_shift"
-        # src_ratio_per_cls = np.array([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.])
-        # preprocess(args.dataset, preprocess_name, cls_num, novel_cls, src_ratio_per_cls, args)
+    if args.dataset == "Computers":
+        cls_num = 10
+        novel_cls = 9
 
         preprocess_name = "shift"
-        src_ratio_per_cls = np.array([0.1, 0.9, 0.1, 0.9, 0.1, 0.9, 0.])
+        src_ratio_per_cls = np.array([0.1, 0.9, 0.1, 0.9, 0.1, 0.9, 0.1, 0.9, 0.5, 0.])
         preprocess(args.dataset, preprocess_name, cls_num, novel_cls, src_ratio_per_cls, args)
 
-    elif args.dataset == "CiteSeer":
-        cls_num = 6
-        novel_cls = 5 # nncd3
-
-        # preprocess_name = "no_shift"
-        # src_ratio_per_cls = np.array([0., 0.5, 0.5, 0.5, 0.5, 0.5]) # nncd3
-        # preprocess(args.dataset, preprocess_name, cls_num, novel_cls, src_ratio_per_cls, args)
+    elif args.dataset == "Photo":
+        cls_num = 8
+        novel_cls = 7
 
         preprocess_name = "shift"
-        src_ratio_per_cls = np.array([0.9, 0.1, 0.9, 0.1, 0.5, 0.]) # nncd3
+        src_ratio_per_cls = np.array([0.9, 0.1, 0.9, 0.1, 0.9, 0.1, 0.]) # nncd3
         preprocess(args.dataset, preprocess_name, cls_num, novel_cls, src_ratio_per_cls, args)

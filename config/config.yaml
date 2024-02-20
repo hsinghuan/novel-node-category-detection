@@ -1,7 +1,7 @@
 defaults:
   - trainer: default.yaml
   - datamodule: default.yaml
-  - detector: reco_slip.yaml
+  - detector: lp_pul.yaml
   - logger: tensorboard.yaml
   - _self_
 
@@ -20,7 +20,7 @@ test_ckpt_version: 0
 #dataset_name: Cora
 #dataset_subdir: shift
 #feat_dim: 1433
-
+#
 #arch_param:
 #  gnn_dim_list:
 #    - ${feat_dim}
@@ -83,14 +83,14 @@ test_ckpt_version: 0
 #alpha: 0.9
 #max_epochs: 1
 
-
+## reco-slip
 #method: reco_slip
 #model_type: gcn_gae
-#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${dual_learning_rate}_${constrained_penalty}_${aux_loss_weight}_${seed}/${log_subdir}
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${dual_learning_rate}_${constrained_penalty}_${aux_loss_weight}_${lagrange_multiplier_init}_${link_predict}_${seed}/${log_subdir}
 #log_subdir: ${target_recalls}
 #mode: constrained_opt
 #target_recalls:
-#  - 0.1
+#  - 0.1 # # use multirun over [0.05, 0.10, 0.15, 0.20, 0.25]
 #learning_rate: 0.001
 #dual_learning_rate: 0.001
 #constrained_penalty: 0.
@@ -99,8 +99,28 @@ test_ckpt_version: 0
 #link_predict: selective
 #aux_loss_weight: 1e-3
 #model_selection_args:
-#  criteria: conoc
-#  beta: 0.1
+#  criteria: reco_slip
+#  beta: 0.01
+
+# reco-slip w/o link prediction
+#method: reco_slip
+#model_type: gcn_gae
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${dual_learning_rate}_${constrained_penalty}_${aux_loss_weight}_${lagrange_multiplier_init}_${link_predict}_${seed}/${log_subdir}
+#log_subdir: ${target_recalls}
+#mode: constrained_opt
+#target_recalls:
+#  - 0.1 # use multirun over [0.05, 0.10, 0.15, 0.20, 0.25]
+#learning_rate: 0.001
+#dual_learning_rate: 0.001
+#constrained_penalty: 0.
+#max_epochs: 1000
+#lagrange_multiplier_init: 0.1
+#link_predict: null
+#aux_loss_weight: 1e-3
+#model_selection_args:
+#  criteria: reco_slip
+#  beta: 0.01
+
 
 
 
@@ -134,26 +154,27 @@ test_ckpt_version: 0
 
 # CITESEER
 novel_cls: 5
-data_dir: "/home/hhchung/data/nncd3/"
-dataset_name: "CiteSeer"
-dataset_subdir: "shift"
+data_dir: /home/hhchung/data/nncd/
+dataset_name: CiteSeer
+dataset_subdir: shift
 feat_dim: 3703
+
 
 arch_param:
   gnn_dim_list:
     - ${feat_dim}
     - 64
-    - 16
+    - 32
   mlp_dim_list:
-    - 16
-    - 8
+    - 32
+    - 4
     - 2
   gnn_dr_list:
     - 0.5
   mlp_dr_list:
     - 0.5
 
-# domain discriminator
+## domain discriminator
 #method: domain_discriminator
 #model_type: gcn
 #mode: domain_disc
@@ -165,23 +186,43 @@ arch_param:
 #weight_decay: 0.
 #max_epochs: 2000
 
-method: reco_slip
-model_type: gcn_gae
-log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${dual_learning_rate}_${constrained_penalty}_${aux_loss_weight}_${seed}/${log_subdir}
-log_subdir: ${target_recalls}
-mode: constrained_opt
-target_recalls:
-  - 0.1
-learning_rate: 0.001
-dual_learning_rate: 0.001
-constrained_penalty: 0.
-max_epochs: 1000
-lagrange_multiplier_init: 0.1
-link_predict: selective
-aux_loss_weight: 1e-3
-model_selection_args:
-  criteria: reco_slip
-  beta: 0.1
+## reco-slip
+#method: reco_slip
+#model_type: gcn_gae
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${dual_learning_rate}_${constrained_penalty}_${aux_loss_weight}_${lagrange_multiplier_init}_${link_predict}_${seed}/${log_subdir}
+#log_subdir: ${target_recalls}
+#mode: constrained_opt
+#target_recalls:
+#  - 0.1 # # use multirun over [0.05], [0.10], [0.15], [0.20], [0.25]
+#learning_rate: 0.001
+#dual_learning_rate: 0.001
+#constrained_penalty: 0.
+#max_epochs: 1000
+#lagrange_multiplier_init: 0.1
+#link_predict: selective
+#aux_loss_weight: 1e-3
+#model_selection_args:
+#  criteria: reco_slip
+#  beta: 0.05
+
+# reco-slip w/o link prediction
+#method: reco_slip
+#model_type: gcn_gae
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${dual_learning_rate}_${constrained_penalty}_${aux_loss_weight}_${lagrange_multiplier_init}_${link_predict}_${seed}/${log_subdir}
+#log_subdir: ${target_recalls}
+#mode: constrained_opt
+#target_recalls:
+#  - 0.1 # # use multirun over [0.05], [0.10], [0.15], [0.20], [0.25]
+#learning_rate: 0.001
+#dual_learning_rate: 0.001
+#constrained_penalty: 0.
+#max_epochs: 1000
+#lagrange_multiplier_init: 0.1
+#link_predict: null
+#aux_loss_weight: 1e-3
+#model_selection_args:
+#  criteria: reco_slip
+#  beta: 0.05
 
 # uPU
 #method: upu
@@ -208,7 +249,7 @@ model_selection_args:
 #nnPU: True
 
 
-# sar em
+## sar em
 #method: sar_em
 #mode: domain_disc
 #model_type: gcn
@@ -235,6 +276,138 @@ model_selection_args:
 #reg_K: 50
 #num_hops: 3
 
+
+# lp_pul
+method: lp_pul
+mode: label_prop
+log_name: ${dataset_name}_${dataset_subdir}_${method}_${seed}
+log_subdir: null
+novel_ratio: 0.5
+num_layers: 3
+alpha: 0.9
+max_epochs: 1
+
+
+# AMAZON COMPUTERS
+#novel_cls: 9
+#data_dir: /home/hhchung/data/nncd/
+#dataset_name: Computers
+#dataset_subdir: shift
+#feat_dim: 767
+#
+#arch_param:
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 16
+#    - 16
+#  mlp_dim_list:
+#    - 16
+#    - 8
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
+
+# domain discriminator
+#method: domain_discriminator
+#model_type: gcn
+#mode: domain_disc
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${constrained_penalty}_${seed}
+#log_subdir: null
+#oracle: False
+#constrained_penalty: 0.
+#learning_rate: 0.001
+#weight_decay: 0.
+#max_epochs: 2000
+
+# sar em
+#method: sar_em
+#mode: domain_disc
+#model_type: gcn
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#log_subdir: null
+#learning_rate: 0.001
+#weight_decay: 0.
+#max_epochs: 500
+#inner_epochs: 200
+#refit: True
+
+# reco-slip
+#method: reco_slip
+#model_type: gcn_gae
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${dual_learning_rate}_${constrained_penalty}_${aux_loss_weight}__${lagrange_multiplier_init}_${link_predict}_${seed}/${log_subdir}
+#log_subdir: ${target_recalls}
+#mode: constrained_opt
+#target_recalls:
+#  - 0.1 # # use multirun over [0.05, 0.10, 0.15, 0.20, 0.25]
+#learning_rate: 0.001
+#dual_learning_rate: 0.001
+#constrained_penalty: 0.
+#max_epochs: 1000
+#lagrange_multiplier_init: 0.4 # 0.3
+#link_predict: selective
+#aux_loss_weight: 1e-3
+#model_selection_args:
+#  criteria: reco_slip
+#  beta: 0.01
+
+# reco-slip w/o link prediction
+#method: reco_slip
+#model_type: gcn_gae
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${dual_learning_rate}_${constrained_penalty}_${aux_loss_weight}_${lagrange_multiplier_init}_${link_predict}_${seed}/${log_subdir}
+#log_subdir: ${target_recalls}
+#mode: constrained_opt
+#target_recalls:
+#  - 0.1 # # use multirun over [0.05, 0.10, 0.15, 0.20, 0.25]
+#learning_rate: 0.001
+#dual_learning_rate: 0.001
+#constrained_penalty: 0.
+#max_epochs: 1000
+#lagrange_multiplier_init: 0.4 # 0.3
+#link_predict: null
+#aux_loss_weight: 1e-3
+#model_selection_args:
+#  criteria: reco_slip
+#  beta: 0.01
+
+# uPU
+#method: upu
+#mode: domain_disc
+#model_type: gcn
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#log_subdir: null
+#learning_rate: 0.001
+#weight_decay: 0.
+#max_epochs: 1000
+#warmup_epochs: 150
+#nnPU: False
+
+# nnPU
+#method: nnpu
+#mode: domain_disc
+#model_type: gcn
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#log_subdir: null
+#learning_rate: 0.001
+#weight_decay: 0.
+#max_epochs: 1000
+#warmup_epochs: 150
+#nnPU: True
+
+# pu-gnn
+#method: pu_gnn
+#mode: domain_disc
+#model_type: gcn
+#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+#log_subdir: null
+#learning_rate: 0.001
+#weight_decay: 0.
+#max_epochs: 1000
+#warmup_epochs: 150
+#reg_loss_weight: 1e-1
+#reg_K: 30
+#num_hops: 3
 
 # lp_pul
 #method: lp_pul

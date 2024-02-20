@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.metrics import roc_auc_score, average_precision_score, f1_score, confusion_matrix
+from sklearn.metrics import roc_auc_score, average_precision_score, f1_score, precision_recall_curve, auc
 import lightning as L
 import torch
 import torch.nn.functional as F
@@ -380,14 +380,12 @@ class RECOSLIP(L.LightningModule):
             roc_auc = roc_auc_score(y_oracle[tgt_val_mask], probs[:, i, 1][tgt_val_mask])
             ap = average_precision_score(y_oracle[tgt_val_mask], probs[:, i, 1][tgt_val_mask])
             f1 = f1_score(y_oracle[tgt_val_mask], np.argmax(probs[:, i], axis=1)[tgt_val_mask])
-            cm = confusion_matrix(y_oracle[tgt_val_mask], np.argmax(probs[:, i][tgt_val_mask], axis=1))
+            precision, recall, _ = precision_recall_curve(y_oracle[tgt_val_mask], probs[:, i, 1][tgt_val_mask])
+            au_prc = auc(recall, precision)
             self.log("val/performance.AU-ROC_" + str(self.target_recalls[i]), roc_auc, on_step=False, on_epoch=True, batch_size=batch_size)
             self.log("val/performance.AP_" + str(self.target_recalls[i]), ap, on_step=False, on_epoch=True, batch_size=batch_size)
             self.log("val/performance.F1_" + str(self.target_recalls[i]), f1, on_step=False, on_epoch=True, batch_size=batch_size)
-            self.log("val/performance.TP_" + str(self.target_recalls[i]), cm[1,1], on_step=False, on_epoch=True, batch_size=batch_size)
-            self.log("val/performance.FP_" + str(self.target_recalls[i]), cm[0,1], on_step=False, on_epoch=True, batch_size=batch_size)
-            self.log("val/performance.TN_" + str(self.target_recalls[i]), cm[0,0], on_step=False, on_epoch=True, batch_size=batch_size)
-            self.log("val/performance.FN_" + str(self.target_recalls[i]), cm[1,0], on_step=False, on_epoch=True, batch_size=batch_size)
+            # self.log("val/performance.AU-PRC" + str(self.target_recalls[i]), au_prc, on_step=False, on_epoch=True, batch_size=batch_size)
 
         self.validation_step_outputs = []
 
@@ -403,17 +401,23 @@ class RECOSLIP(L.LightningModule):
             roc_auc = roc_auc_score(y_oracle[tgt_test_mask], probs[:, i, 1][tgt_test_mask])
             ap = average_precision_score(y_oracle[tgt_test_mask], probs[:, i, 1][tgt_test_mask])
             f1 = f1_score(y_oracle[tgt_test_mask], np.argmax(probs[:, i], axis=1)[tgt_test_mask])
+            precision, recall, _ = precision_recall_curve(y_oracle[tgt_test_mask], probs[:, i, 1][tgt_test_mask])
+            au_prc = auc(recall, precision)
             self.log("test/performance.AU-ROC_" + str(self.target_recalls[i]), roc_auc, on_step=False, on_epoch=True, batch_size=tgt_test_mask.sum())
             self.log("test/performance.AP_" + str(self.target_recalls[i]), ap, on_step=False, on_epoch=True, batch_size=tgt_test_mask.sum())
             self.log("test/performance.F1_" + str(self.target_recalls[i]), f1, on_step=False, on_epoch=True, batch_size=tgt_test_mask.sum())
+            # self.log("test/performance.AU-PRC_" + str(self.target_recalls[i]), au_prc, on_step=False, on_epoch=True, batch_size=tgt_test_mask.sum())
 
         for i in range(len(self.target_recalls)):
             tgt_roc_auc = roc_auc_score(y_oracle[tgt_mask], probs[:, i, 1][tgt_mask])
             tgt_ap = average_precision_score(y_oracle[tgt_mask], probs[:, i, 1][tgt_mask])
             tgt_f1 = f1_score(y_oracle[tgt_mask], np.argmax(probs[:, i], axis=1)[tgt_mask])
+            tgt_precision, tgt_recall, _ = precision_recall_curve(y_oracle[tgt_test_mask], probs[:, i, 1][tgt_test_mask])
+            tgt_au_prc = auc(tgt_recall, tgt_precision)
             self.log("tgt/performance.AU-ROC_" + str(self.target_recalls[i]), tgt_roc_auc, on_step=False, on_epoch=True, batch_size=tgt_mask.sum())
             self.log("tgt/performance.AP_" + str(self.target_recalls[i]), tgt_ap, on_step=False, on_epoch=True, batch_size=tgt_mask.sum())
             self.log("tgt/performance.F1_" + str(self.target_recalls[i]), tgt_f1, on_step=False, on_epoch=True, batch_size=tgt_mask.sum())
+            # self.log("tgt/performance.AU-PRC_" + str(self.target_recalls[i]), tgt_au_prc, on_step=False, on_epoch=True, batch_size=tgt_mask.sum())
 
         self.test_step_outputs = []
 

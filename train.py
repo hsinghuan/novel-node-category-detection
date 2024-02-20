@@ -4,7 +4,7 @@ import torch
 import lightning as L
 from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping
 from lightning.pytorch.loggers import TensorBoardLogger
-
+from src.utils.model_utils import MonitorAfterModelCheckpoint
 
 def train(config):
     L.seed_everything(int(config.seed))
@@ -20,7 +20,7 @@ def train(config):
         checkpoint_callback = ModelCheckpoint(monitor="val/loss",
                                               save_weights_only=True,
                                               save_last=True)
-        early_stop_callback = EarlyStopping(monitor="val/loss", patience=50, mode="min") # for domain discriminator
+        early_stop_callback = EarlyStopping(monitor="val/loss", patience=50, mode="min")
         trainer: L.Trainer = hydra.utils.instantiate(
             config.trainer,
             logger=logger,
@@ -36,9 +36,13 @@ def train(config):
             callbacks=[checkpoint_callback]
         )
     else:
-        checkpoint_callback = ModelCheckpoint(monitor="val/loss",
-                                              save_weights_only=True,
-                                              save_last=True)
+        checkpoint_callback = MonitorAfterModelCheckpoint(monitor_after=config.max_epochs // 2,
+                                                      monitor="val/loss",
+                                                      save_weights_only=True,
+                                                      save_last=True)
+        # checkpoint_callback = ModelCheckpoint(monitor="val/loss",
+        #                                       save_weights_only=True,
+        #                                       save_last=True)
         trainer: L.Trainer = hydra.utils.instantiate(
             config.trainer,
             logger=logger,
