@@ -102,5 +102,5 @@ if __name__ == "__main__":
         novel_cls = 7
 
         preprocess_name = "shift"
-        src_ratio_per_cls = np.array([0.9, 0.1, 0.9, 0.1, 0.9, 0.1, 0.]) # nncd3
+        src_ratio_per_cls = np.array([0.9, 0.1, 0.9, 0.1, 0.9, 0.1, 0.5, 0.])
         preprocess(args.dataset, preprocess_name, cls_num, novel_cls, src_ratio_per_cls, args)
