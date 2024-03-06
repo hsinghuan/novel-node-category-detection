@@ -86,21 +86,56 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Preprocess Amazon datasets for novel node category detection")
     parser.add_argument("--root_dir", type=str)
     parser.add_argument("--dataset", type=str)
-    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--preprocess_name", type=str, default="shift")
     args = parser.parse_args()
-    L.seed_everything(args.seed)
+
+    if args.preprocess_name == "no_shift":
+        seed = 10
+    else:
+        seed = 42
+    L.seed_everything(seed)
+
     if args.dataset == "Computers":
         cls_num = 10
         novel_cls = 9
 
-        preprocess_name = "shift"
-        src_ratio_per_cls = np.array([0.1, 0.9, 0.1, 0.9, 0.1, 0.9, 0.1, 0.9, 0.5, 0.])
-        preprocess(args.dataset, preprocess_name, cls_num, novel_cls, src_ratio_per_cls, args)
+        if args.preprocess_name == "shift":
+            src_ratio_per_cls = np.array([0.1, 0.9, 0.1, 0.9, 0.1, 0.9, 0.1, 0.9, 0.5, 0.])
+        elif args.preprocess_name == "minor_shift":
+            src_ratio_per_cls = np.array([0.3, 0.7, 0.3, 0.7, 0.3, 0.7, 0.3, 0.7, 0.5, 0.])
+        elif args.preprocess_name == "no_shift":
+            src_ratio_per_cls = np.array([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.])
+        # preprocess_name = "shift"
+        # src_ratio_per_cls = np.array([0.1, 0.9, 0.1, 0.9, 0.1, 0.9, 0.1, 0.9, 0.5, 0.])
+        # preprocess(args.dataset, preprocess_name, cls_num, novel_cls, src_ratio_per_cls, args)
+
+        # preprocess_name = "minor_shift"
+        # src_ratio_per_cls = np.array([0.3, 0.7, 0.3, 0.7, 0.3, 0.7, 0.3, 0.7, 0.5, 0.])
+        # preprocess(args.dataset, preprocess_name, cls_num, novel_cls, src_ratio_per_cls, args)
+
+        # preprocess_name = "no_shift"
+        # src_ratio_per_cls = np.array([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.])
+        preprocess(args.dataset, args.preprocess_name, cls_num, novel_cls, src_ratio_per_cls, args)
 
     elif args.dataset == "Photo":
         cls_num = 8
         novel_cls = 7
 
-        preprocess_name = "shift"
-        src_ratio_per_cls = np.array([0.9, 0.1, 0.9, 0.1, 0.9, 0.1, 0.5, 0.])
-        preprocess(args.dataset, preprocess_name, cls_num, novel_cls, src_ratio_per_cls, args)
+        if args.preprocess_name == "shift":
+            src_ratio_per_cls = np.array([0.9, 0.1, 0.9, 0.1, 0.9, 0.1, 0.5, 0.])
+        elif args.preprocess_name == "minor_shift":
+            src_ratio_per_cls = np.array([0.7, 0.3, 0.7, 0.3, 0.7, 0.3, 0.5, 0.])
+        elif args.preprocess_name == "no_shift":
+            src_ratio_per_cls = np.array([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.])
+
+        # preprocess_name = "shift"
+        # src_ratio_per_cls = np.array([0.9, 0.1, 0.9, 0.1, 0.9, 0.1, 0.5, 0.])
+        # preprocess(args.dataset, preprocess_name, cls_num, novel_cls, src_ratio_per_cls, args)
+
+        # preprocess_name = "minor_shift"
+        # src_ratio_per_cls = np.array([0.7, 0.3, 0.7, 0.3, 0.7, 0.3, 0.5, 0.])
+        # preprocess(args.dataset, preprocess_name, cls_num, novel_cls, src_ratio_per_cls, args)
+
+        # preprocess_name = "no_shift"
+        # src_ratio_per_cls = np.array([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.])
+        preprocess(args.dataset, args.preprocess_name, cls_num, novel_cls, src_ratio_per_cls, args)
