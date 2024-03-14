@@ -426,3 +426,17 @@ class RECOSLIP(L.LightningModule):
 
     def configure_optimizers(self):
         return self.primal_optimizer
+    
+    @torch.no_grad()
+    def get_representation(self, loader):
+        self.model.eval()
+        repr = []
+        y = []
+        for data in loader:
+            data = data.to(self.device)
+            repr.append(self.model.embedding(data.x, data.edge_index))
+            y.append((data.y == self.novel_cls).type(torch.int64))
+        
+        repr = torch.cat(repr, dim=0).cpu().numpy()
+        y = torch.cat(y, dim=0).cpu().numpy()
+        return repr, y

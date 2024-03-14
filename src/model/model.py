@@ -15,3 +15,6 @@ class Model(nn.Module):
 
     def get_encoder_classifier(self):
         return self.encoder, self.classifier
+    
+    def embedding(self, x, edge_index, edge_weight=None):
+        return self.encoder(x, edge_index, edge_weight)

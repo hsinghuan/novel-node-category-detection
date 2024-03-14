@@ -175,6 +175,10 @@ class PUGNN(L.LightningModule):
         logits = self.forward(batch)
         # TODO: make src_neighbor_tgt and src_distant_tgt masks
         src_node_idx = batch.src_mask.nonzero().view(-1)
+        # print(f"src node idx: {src_node_idx}")
+        # print(f"edge index: {batch.edge_index}")
+        # print(src_node_idx.max(), batch.edge_index.max())
+        src_node_idx = src_node_idx[torch.isin(src_node_idx, batch.edge_index)]
         src_k_hop_subset, src_k_hop_edge_index, _, _ = k_hop_subgraph(src_node_idx, num_hops=self.num_hops, edge_index=batch.edge_index)
         src_k_hop_subset_mask = torch.zeros_like(batch.src_mask, dtype=torch.bool)
         src_k_hop_subset_mask[src_k_hop_subset] = 1

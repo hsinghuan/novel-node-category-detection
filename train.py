@@ -16,7 +16,10 @@ def train(config):
     logger: TensorBoardLogger = hydra.utils.instantiate(config.logger)
 
 
-    if config.mode == "domain_disc":
+    detector: L.LightningModule = hydra.utils.instantiate(config.detector)
+    datamodule: L.LightningDataModule = hydra.utils.instantiate(config.datamodule)
+
+    if config.mode == "domain_disc" or config.mode == "random":
         checkpoint_callback = ModelCheckpoint(monitor="val/loss",
                                               save_weights_only=True,
                                               save_last=True)
@@ -50,10 +53,12 @@ def train(config):
             num_sanity_val_steps=0
         )
 
-    detector: L.LightningModule = hydra.utils.instantiate(config.detector)
-    datamodule: L.LightningDataModule = hydra.utils.instantiate(config.datamodule)
 
     trainer.fit(model=detector, datamodule=datamodule)
+
+    if config.mode == "random":
+        trainer.save_checkpoint(os.path.join(checkpoint_callback.dirpath, "0.ckpt"))
+
     print("log subdir", config.log_subdir)
     if config.log_subdir:  # various hyper-parameter combinations
         ckpt_dirpath = checkpoint_callback.dirpath

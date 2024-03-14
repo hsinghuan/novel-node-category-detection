@@ -1,4 +1,5 @@
 import numpy as np
+
 import lightning as L
 import torch
 import torch.nn as nn
@@ -23,6 +24,8 @@ class DomainDiscriminator(L.LightningModule):
         super().__init__()
         self.model_type = model_type
         self.novel_cls = novel_cls
+        # if not isinstance(self.novel_cls, int):
+        #     self.novel_cls = torch.tensor(list(self.novel_cls))
         self.constrained_penalty = constrained_penalty
         self.seed = seed
 
@@ -43,6 +46,7 @@ class DomainDiscriminator(L.LightningModule):
         self.automatic_optimization = False
         self.save_hyperparameters()
 
+
     def forward(self, data):
         if self.model_type == "mlp":
             return self.model(data.x)
@@ -58,8 +62,14 @@ class DomainDiscriminator(L.LightningModule):
         return penalty_lambda * penalty_term
 
     def process_batch(self, batch, stage):
-        y_oracle = torch.zeros_like(batch.tgt_mask, dtype=torch.int64)
-        y_oracle[batch.y == self.novel_cls] = 1
+        # y_oracle = torch.zeros_like(batch.tgt_mask, dtype=torch.int64)
+        # if isinstance(self.novel_cls, int):
+        #     # y_oracle[batch.y == self.novel_cls] = 1
+        y_oracle = (batch.y == self.novel_cls).type(torch.int64)
+        # elif isinstance(self.novel_cls, torch.Tensor):
+        #     y_oracle = torch.isin(batch.y, self.novel_cls.to(self.device)).type(torch.int64)
+        # else:
+        #     raise ValueError(f"self.novel_cls must be an integer or a torch.Tensor, get a {type(self.novel_cls)}")
         if self.oracle:
             y = y_oracle
         else:
@@ -150,9 +160,6 @@ class DomainDiscriminator(L.LightningModule):
 
         # compute roc_auc_score, average precision
         tgt_val_mask = np.logical_and(tgt_mask, val_mask)
-        # print(tgt_val_mask.sum().item())
-        # print(f"y oracle: {y_oracle[tgt_val_mask]}")
-        # print(f"probs: {probs[:, 1][tgt_val_mask]}")
         roc_auc = roc_auc_score(y_oracle[tgt_val_mask], probs[:, 1][tgt_val_mask])
         ap = average_precision_score(y_oracle[tgt_val_mask], probs[:, 1][tgt_val_mask])
         f1 = f1_score(y_oracle[tgt_val_mask], np.argmax(probs, axis=1)[tgt_val_mask])
@@ -201,4 +208,17 @@ class DomainDiscriminator(L.LightningModule):
 
     def configure_optimizers(self):
         return self.optimizer
-
+    
+    @torch.no_grad()
+    def get_representation(self, loader):
+        self.model.eval()
+        repr = []
+        y = []
+        for data in loader:
+            data = data.to(self.device)
+            repr.append(self.model.embedding(data.x, data.edge_index))
+            y.append((data.y == self.novel_cls).type(torch.int64))
+        
+        repr = torch.cat(repr, dim=0).cpu().numpy()
+        y = torch.cat(y, dim=0).cpu().numpy()
+        return repr, y
