@@ -107,8 +107,8 @@ class PULearning(L.LightningModule):
             # transform logits and targets into PULoss format (src label: 1, tgt label: -1)
             pu_outputs = logits[mask][:,0]
             pu_targets = y[mask] # 0 -> 1, 1 -> -1
-            pu_targets[pu_targets == 0] = 1
             pu_targets[pu_targets == 1] = -1
+            pu_targets[pu_targets == 0] = 1
             loss = self.pu_loss(pu_outputs, pu_targets)
         if stage == "train":
             optimizer = self.optimizers()
