@@ -1,7 +1,7 @@
 defaults:
   - trainer: default.yaml
   - datamodule: default.yaml
-  - detector: pu.yaml
+  - detector: reco_slip.yaml
   - logger: tensorboard.yaml
   - _self_
 
@@ -9,7 +9,7 @@ defaults:
 work_dir: /home/hhchung/novel-node-category-detection
 log_loc: log
 log_dir: ${work_dir}/${log_loc}
-checkpoint_dirpath: ${log_dir}/${log_name} # ${work_dir}/checkpoint/${log_name}
+checkpoint_dirpath: ${log_dir}/${log_name}
 seed: 10
 test_ckpt_version: 0
 
@@ -18,7 +18,7 @@ test_ckpt_version: 0
 # novel_cls: 6
 # data_dir: /home/hhchung/data/nncd/
 # dataset_name: Cora
-# dataset_subdir: no_shift
+# dataset_subdir: shift
 # feat_dim: 1433
 
 # arch_param:
@@ -72,29 +72,29 @@ test_ckpt_version: 0
 # max_epochs: 2000
 
 
-# uPU
-#method: upu
-#mode: domain_disc
-#model_type: gcn
-#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
-#log_subdir: null
-#learning_rate: 0.001
-#weight_decay: 0.
-#max_epochs: 1000
-#warmup_epochs: 150
-#nnPU: False
+# # uPU
+# method: upu
+# mode: domain_disc
+# model_type: gcn
+# log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+# log_subdir: null
+# learning_rate: 0.001
+# weight_decay: 0.
+# max_epochs: 1000
+# warmup_epochs: 150
+# nnPU: False
 
-# nnPU
-#method: nnpu
-#mode: domain_disc
-#model_type: gcn
-#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
-#log_subdir: null
-#learning_rate: 0.001
-#weight_decay: 0.
-#max_epochs: 1000
-#warmup_epochs: 150
-#nnPU: True
+# # nnPU
+# method: nnpu
+# mode: domain_disc
+# model_type: gcn
+# log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+# log_subdir: null
+# learning_rate: 0.001
+# weight_decay: 0.
+# max_epochs: 1000
+# warmup_epochs: 150
+# nnPU: True
 
 
 # lp_pul
@@ -218,7 +218,7 @@ test_ckpt_version: 0
 # novel_cls: 5
 # data_dir: /home/hhchung/data/nncd/
 # dataset_name: CiteSeer
-# dataset_subdir: no_shift
+# dataset_subdir: shift
 # feat_dim: 3703
 
 
@@ -349,29 +349,29 @@ test_ckpt_version: 0
 #  criteria: reco_slip
 #  beta: 0.05
 
-# uPU
-#method: upu
-#mode: domain_disc
-#model_type: gcn
-#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
-#log_subdir: null
-#learning_rate: 0.001
-#weight_decay: 0.
-#max_epochs: 1000
-#warmup_epochs: 150
-#nnPU: False
+# # uPU
+# method: upu
+# mode: domain_disc
+# model_type: gcn
+# log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+# log_subdir: null
+# learning_rate: 0.001
+# weight_decay: 0.
+# max_epochs: 1000
+# warmup_epochs: 150
+# nnPU: False
 
-# nnPU
-#method: nnpu
-#mode: domain_disc
-#model_type: gcn
-#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
-#log_subdir: null
-#learning_rate: 0.001
-#weight_decay: 0.
-#max_epochs: 1000
-#warmup_epochs: 150
-#nnPU: True
+# # nnPU
+# method: nnpu
+# mode: domain_disc
+# model_type: gcn
+# log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+# log_subdir: null
+# learning_rate: 0.001
+# weight_decay: 0.
+# max_epochs: 1000
+# warmup_epochs: 150
+# nnPU: True
 
 
 # # sar em
@@ -417,7 +417,7 @@ test_ckpt_version: 0
 # novel_cls: 9
 # data_dir: /home/hhchung/data/nncd/
 # dataset_name: Computers
-# dataset_subdir: no_shift
+# dataset_subdir: shift
 # feat_dim: 767
 
 # arch_param:
@@ -564,29 +564,29 @@ test_ckpt_version: 0
 
 
 
-# uPU
-#method: upu
-#mode: domain_disc
-#model_type: gcn
-#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
-#log_subdir: null
-#learning_rate: 0.001
-#weight_decay: 0.
-#max_epochs: 1000
-#warmup_epochs: 150
-#nnPU: False
+# # uPU
+# method: upu
+# mode: domain_disc
+# model_type: gcn
+# log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+# log_subdir: null
+# learning_rate: 0.001
+# weight_decay: 0.
+# max_epochs: 1000
+# warmup_epochs: 150
+# nnPU: False
 
-# nnPU
-#method: nnpu
-#mode: domain_disc
-#model_type: gcn
-#log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
-#log_subdir: null
-#learning_rate: 0.001
-#weight_decay: 0.
-#max_epochs: 1000
-#warmup_epochs: 150
-#nnPU: True
+# # nnPU
+# method: nnpu
+# mode: domain_disc
+# model_type: gcn
+# log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+# log_subdir: null
+# learning_rate: 0.001
+# weight_decay: 0.
+# max_epochs: 1000
+# warmup_epochs: 150
+# nnPU: True
 
 # # pu-gnn
 # method: pu_gnn
@@ -619,7 +619,7 @@ test_ckpt_version: 0
 # novel_cls: 7 
 # data_dir: /home/hhchung/data/nncd/
 # dataset_name: Photo 
-# dataset_subdir: no_shift
+# dataset_subdir: shift
 # feat_dim: 745
 
 
@@ -818,26 +818,26 @@ test_ckpt_version: 0
 
 
 
-# ARXIV
-novel_cls: 3
-data_dir: /home/hhchung/data/nncd/
-dataset_name: ogbn_arxiv
-dataset_subdir: "0_2007_2012_2013_robotics_related"
-feat_dim: 128
+# # ARXIV
+# novel_cls: 3
+# data_dir: /home/hhchung/data/nncd/
+# dataset_name: ogbn_arxiv
+# dataset_subdir: "0_2007_2012_2013_robotics_related"
+# feat_dim: 128
 
-arch_param:
- gnn_dim_list:
-   - ${feat_dim}
-   - 64
-   - 64
- mlp_dim_list:
-   - 64
-   - 32
-   - 2
- gnn_dr_list:
-   - 0.5
- mlp_dr_list:
-   - 0.5
+# arch_param:
+#  gnn_dim_list:
+#    - ${feat_dim}
+#    - 64
+#    - 64
+#  mlp_dim_list:
+#    - 64
+#    - 32
+#    - 2
+#  gnn_dr_list:
+#    - 0.5
+#  mlp_dr_list:
+#    - 0.5
 
 # # oracle 
 # method: oracle 
@@ -991,14 +991,14 @@ arch_param:
 # warmup_epochs: 150
 # nnPU: False
 
-# nnPU
-method: nnpu
-mode: domain_disc
-model_type: gcn
-log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
-log_subdir: null
-learning_rate: 0.001
-weight_decay: 0.
-max_epochs: 1000
-warmup_epochs: 150
-nnPU: True
+# # nnPU
+# method: nnpu
+# mode: domain_disc
+# model_type: gcn
+# log_name: ${dataset_name}_${dataset_subdir}_${method}_${model_type}_${learning_rate}_${seed}
+# log_subdir: null
+# learning_rate: 0.001
+# weight_decay: 0.
+# max_epochs: 1000
+# warmup_epochs: 150
+# nnPU: True

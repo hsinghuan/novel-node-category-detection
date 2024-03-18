@@ -66,44 +66,22 @@ def preprocess(data, domain_bound=[0, 2007, 2011], test_year_bound=2009, proport
     data_new.tgt_mask = torch.logical_and(node_years_new >= domain_bound[1], node_years_new < domain_bound[2])
     data_new.test_mask = node_years_new >= test_year_bound
 
-    # drop theory categories
-    # theory_categories = torch.tensor([9, 36, 34, 39, 33, 28, 2, 0], dtype=torch.int64)
     to_keep_categories = torch.tensor([10, 11, 16, 19, 24, 27], dtype=torch.int64)
     edge_index = data_new.edge_index
-    # wo_theory_mask = torch.logical_not(torch.isin(data_new.y, theory_categories))
     to_keep_mask = torch.isin(data_new.y, to_keep_categories)
-    # wo_theory_edge_index, _ = subgraph(wo_theory_mask, edge_index)
     to_keep_edge_index, _ = subgraph(to_keep_mask, edge_index)
-    # wo_theory_num_nodes = wo_theory_mask.size(0)
     to_keep_num_nodes = to_keep_mask.size(0)
-    # wo_theory_subset = wo_theory_mask.nonzero().view(-1)
     to_keep_subset = to_keep_mask.nonzero().view(-1)
-    # relabeled_wo_theory_edge_index, _ = map_index(wo_theory_edge_index, wo_theory_subset, max_index=wo_theory_num_nodes, inclusive=True)
     relabeled_to_keep_edge_index, _ = map_index(to_keep_edge_index, to_keep_subset, max_index=to_keep_num_nodes, inclusive=True)
-    # relabeled_wo_theory_edge_index = relabeled_wo_theory_edge_index.view(2, -1)
     relabeled_to_keep_edge_index = relabeled_to_keep_edge_index.view(2, -1)
-    # wo_theory_y = data_new.y[wo_theory_mask]
     to_keep_y = data_new.y[to_keep_mask]
-    full_labels = torch.arange(40)
-    # wo_theory_labels = full_labels[torch.logical_not(torch.isin(full_labels, theory_categories))]
+    # full_labels = torch.arange(40)
     to_keep_labels = to_keep_categories
-    # print(f"wo theory labels: {wo_theory_labels}")
     print(f"to keep labels: {to_keep_labels}")
-    # wo_theory_y_max = torch.max(wo_theory_y)
     to_keep_y_max = torch.max(to_keep_y)
-    # print(f"number of wo theory y in theory categories: {torch.isin(wo_theory_y, theory_categories).sum().item()}")
-    # relabeled_wo_theory_y, _ = map_index(wo_theory_y, wo_theory_labels, max_index=wo_theory_y_max, inclusive=True)
     relabeled_to_keep_y, _ = map_index(to_keep_y, to_keep_labels, max_index=to_keep_y_max, inclusive=True)
-    # print(wo_theory_y[:50])
-    # print(relabeled_wo_theory_y[:50])
     print(to_keep_y[:50])
     print(relabeled_to_keep_y[:50])
-    # data_new = Data(x=data_new.x[wo_theory_mask],
-    #                 y=relabeled_wo_theory_y,
-    #                 edge_index=relabeled_wo_theory_edge_index,
-    #                 src_mask=data_new.src_mask[wo_theory_mask],
-    #                 tgt_mask=data_new.tgt_mask[wo_theory_mask],
-    #                 test_mask=data_new.test_mask[wo_theory_mask])
     data_new = Data(x=data_new.x[to_keep_mask],
                     y=relabeled_to_keep_y,
                     edge_index=relabeled_to_keep_edge_index,
